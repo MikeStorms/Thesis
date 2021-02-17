@@ -41,12 +41,17 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------------
     layer_spec, _ = input_funcs.get_layer_spec(input_settings, model=None)
 
-    help_funcs.max_pixelwise_unrolling(input_settings, layer_spec)
+    max_pixelwise_unrolling_per_layer, max_pixelwise_unrolling = help_funcs.max_pixelwise_unrolling(input_settings, layer_spec)
 
     # Extract the layer information from the layer_spec
     layers = [cls.Layer.extract_layer_info(layer_spec.layer_info[layer_number])
               for layer_number in input_settings.layer_number]
     layers_saved = deepcopy(layers)
+
+    #pixelwise_layer_spec = help_funcs.pixelwise_layer_spec(layers)
+    layer_info_pixelwise = help_funcs.pixelwise_layer_transform(layer_spec.layer_info)
+    layers_pixelwise = [cls.Layer.extract_layer_info(layer_info_pixelwise[layer_number])
+                     for layer_number in input_settings.layer_number]
 
     layer_info_im2col = im2col_layer_transform(layer_spec.layer_info)
     layers_im2col = [cls.Layer.extract_layer_info(layer_info_im2col[layer_number])
@@ -69,6 +74,11 @@ if __name__ == "__main__":
                 layers_pw_speedup.append(layers[idx])
                 pw_im2col_flag.append(False)
         layers = layers_pw_speedup
+
+    if input_settings.pixelwise_enabled:
+        if input_settings.im2col_enable_pw or input_settings.im2col_enable_all:
+            raise ValueError('Im2col is enabled together with pixelwise execution')
+        layers = layers_pixelwise
 
 
     # If there are duplicate layers, set flag for the latter ones.

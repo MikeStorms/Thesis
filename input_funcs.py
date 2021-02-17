@@ -16,7 +16,7 @@ class InputSettings:
                  unrolling_scheme_list_text, memory_scheme_hint, mh_name, spatial_utilization_threshold, spatial_unrolling_mode,
                  stationary_optimization_enable, su_parallel_processing, arch_search_result_saving, su_search_result_saving,
                  tm_search_result_saving, result_print_mode, im2col_enable_all, im2col_enable_pw, memory_unroll_fully_flexible,
-                 result_print_type, save_results_on_the_fly, max_nb_lpf_layer):
+                 result_print_type, save_results_on_the_fly, max_nb_lpf_layer,pixelwise_enabled):
 
         self.results_path = results_path
         self.results_filename = results_filename
@@ -72,6 +72,8 @@ class InputSettings:
         self.result_print_type = result_print_type
         self.save_results_on_the_fly = save_results_on_the_fly
         self.max_nb_lpf_layer = max_nb_lpf_layer
+        #from here own code
+        self.pixelwise_enabled = pixelwise_enabled
 
 
 def get_input_settings(setting_path, mapping_path, memory_pool_path, architecure_path):
@@ -305,7 +307,7 @@ def get_input_settings(setting_path, mapping_path, memory_pool_path, architecure
                                    fl['save_all_spatial_unrolling_result'], fl['save_all_temporal_mapping_result'],
                                    fl['result_print_mode'], fl['im2col_enable_for_all_layers'],
                                    fl['im2col_enable_for_pointwise_layers'], memory_unroll_fully_flexible,
-                                   fl['result_print_type'], save_results_on_the_fly, max_nb_lpf_layer)
+                                   fl['result_print_type'], save_results_on_the_fly, max_nb_lpf_layer, fl['pixelwise_enabled'])
 
     return input_settings
 
