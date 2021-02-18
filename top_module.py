@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
     # Manages the variables passed to the multiple parallel processes
     multi_manager = MultiManager(input_settings, mem_scheme_sim, layer_spec, layers, layer_info_im2col, layers_im2col,
-                                pw_im2col_flag)
+                                pw_im2col_flag, layer_info_pixelwise, layers_pixelwise)
 
     # A list containing the chunks that will be processed sequentially
     # Each element within a chunk will be processed in parallel

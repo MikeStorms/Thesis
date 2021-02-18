@@ -639,6 +639,11 @@ def mem_scheme_evaluate(input_settings, layer_index, layer, im2col_layer, mem_sc
     else:
         layer_info = deepcopy(multi_manager.layer_spec.layer_info)
         im2col_need_correct = False
+
+    if input_settings.pixelwise_enabled:
+        layer_info = deepcopy(multi_manager.layer_info_pixelwise)
+
+
     # print('Layer', layer_index, layer_info[layer_index])
 
     t1 = time.time()

@@ -4,7 +4,7 @@ import sys, time
 class MultiManager(object):
 
     def __init__(self, input_settings, mem_scheme_sim, layer_spec, layers, layer_info_im2col, layers_im2col,
-                 pw_im2col_flag):
+                 pw_im2col_flag, layer_info_pixelwise, layers_pixelwise):
 
         self.start_time = time.time()
 
@@ -20,6 +20,9 @@ class MultiManager(object):
 
         self.best_mem_scheme_index_en = None
         self.best_mem_scheme_index_ut = None
+
+        self.layer_info_pixelwise = layer_info_pixelwise
+        self.layers_pixelwise = layers_pixelwise
 
         ''' Multiprocessing. Variables used for collecting output. '''
         manager = Manager()
