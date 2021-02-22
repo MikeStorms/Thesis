@@ -6,14 +6,16 @@ class SpatialMap():
     def __init__(self,layer_index,OX,OY):
         self.size = [OX,OY]
         self.layer_index = layer_index
-        self.map = [[False for i in range(OX)] for j in range(OY)]
+        self.map = [[0 for i in range(OX)] for j in range(OY)]
         self.percentage = 0
 
     def set_true(self, IX, IY):
         self.map[IX][IY] = 1
+        self.update_percentage()
 
     def set_false(self, IX, IY):
         self.map[IX][IY] = 0
+        self.update_percentage()
 
     def load(self, name):
         f = open(name, 'rb')
@@ -22,10 +24,11 @@ class SpatialMap():
         assert len(loaded_map) == self.size[0], "Loading map %s has the wrong OX dimension for layer %d " % (name, self.layer_index)
         assert len(loaded_map[0]) == self.size[1], "Loading map %s has the wrong OY dimension for layer %d " % (name, self.layer_index)
         self.map = loaded_map
+        self.update_percentage()
 
     def update_percentage(self):
-        number_true = len([item for row in self.map for item in row if item == True])
-        percentage = number_true / (grid_y * grid_x)
+        number_true = len([item for row in self.map for item in row if item == 1])
+        self.percentage = number_true / (self.size[0] * self.size[1])
 
 class SpatialMapList():
     def __init__(self,layer_indices,layer_info):

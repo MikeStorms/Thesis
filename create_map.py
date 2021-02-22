@@ -49,7 +49,7 @@ class CellGrid(Canvas):
             line = []
             for column in range(columnNumber):
                 line.append(Cell(self, column, row, cellSize))
-                line_bin.append(False)
+                line_bin.append(0)
             self.grid.append(line)
             self.grid_bin.append(line_bin)
             #print('initial grid', self.grid_bin)
@@ -102,7 +102,10 @@ class CellGrid(Canvas):
         for value in self.switched:
             for idx, line in enumerate(self.grid):
                 if value in line:
-                    self.grid_bin[idx][line.index(value)] = not self.grid_bin[idx][line.index(value)]
+                    if self.grid_bin[idx][line.index(value)] == 1:
+                        self.grid_bin[idx][line.index(value)] = 0
+                    else:
+                        self.grid_bin[idx][line.index(value)] = 1
         self.switched.clear()
         update_percentage()
 
