@@ -72,3 +72,4 @@ max_nb_lpf_layer: 7
 
 #Set pixelwise_enabled to true to create a pixelwise execution, prohibiting unrolling over OX and OY
 pixelwise_enabled: True
+map_path : './maps/ResNet101'

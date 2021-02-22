@@ -52,6 +52,7 @@ class CellGrid(Canvas):
                 line_bin.append(False)
             self.grid.append(line)
             self.grid_bin.append(line_bin)
+            #print('initial grid', self.grid_bin)
 
 
         #memorize the cells that have been modified to avoid many switching of state during mouse motion.
@@ -103,6 +104,7 @@ class CellGrid(Canvas):
                 if value in line:
                     self.grid_bin[idx][line.index(value)] = not self.grid_bin[idx][line.index(value)]
         self.switched.clear()
+        update_percentage()
 
 
 def save_state(self):
@@ -111,10 +113,12 @@ def save_state(self):
     pickle.dump(self.grid_bin, f, 2)
     f.close
 
+
 def load_state():
     f = open('map', 'rb')
     grid.grid_bin = pickle.load(f)
     f.close
+    print('grid_bin', grid.grid_bin)
     for idx, line in enumerate(grid.grid_bin):
         for idy, val in enumerate(line):
             if val == True:
@@ -122,18 +126,30 @@ def load_state():
             else:
                 grid.grid[idx][idy].fill = False
     grid.draw()
-    print(grid.grid_bin)
+    update_percentage()
+    #print(grid.grid_bin)
+
 
 def pressed():
     save_state(grid)
 
+def update_percentage():
+    number_true = len([item for row in grid.grid_bin for item in row if item==True])
+    percentage = number_true/(grid_y*grid_x)
+    Percentage.configure(text = percentage)
+
 if __name__ == "__main__" :
     app = Tk()
     buttonPressed = False
-    grid = CellGrid(app, 56, 56, 17)
+    grid_x = 56
+    grid_y = 56
+    pixels = 950//max(grid_y,grid_x)
+    grid = CellGrid(app, grid_x, grid_y, pixels)
     Button1 = Button(app, text="Save", command=pressed)
     Button2 = Button(app, text="Load", command=load_state)
+    Percentage = Label(text="", fg="Red", font=("Helvetica", "18"))
     Button1.pack()
     Button2.pack()
+    Percentage.pack()
     grid.pack()
     app.mainloop()

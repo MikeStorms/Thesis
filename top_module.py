@@ -39,7 +39,7 @@ if __name__ == "__main__":
     # input_settings.layer_number = layer_numbers
     # input_settings.layer_filename = '../../' + load_model.name
     # ---------------------------------------------------------------------------
-    layer_spec, _ = input_funcs.get_layer_spec(input_settings, model=None)
+    layer_spec, layer_indices = input_funcs.get_layer_spec(input_settings, model=None)
 
     max_pixelwise_unrolling_per_layer, max_pixelwise_unrolling = help_funcs.max_pixelwise_unrolling(input_settings, layer_spec)
 
@@ -49,7 +49,8 @@ if __name__ == "__main__":
     layers_saved = deepcopy(layers)
 
     #pixelwise_layer_spec = help_funcs.pixelwise_layer_spec(layers)
-    layer_info_pixelwise = help_funcs.pixelwise_layer_transform(layer_spec.layer_info)
+    spatial_map = help_funcs.extract_map_info(layer_spec.layer_info, layer_indices, input_settings.map_path)
+    layer_info_pixelwise = help_funcs.pixelwise_layer_transform(layer_spec.layer_info, spatial_map)
     layers_pixelwise = [cls.Layer.extract_layer_info(layer_info_pixelwise[layer_number])
                      for layer_number in input_settings.layer_number]
 
