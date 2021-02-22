@@ -81,9 +81,12 @@ def pixelwise_layer_spec(layers):
 def pixelwise_layer_transform(layer_info, spatial_map):
     pixelwise_layer_info = {}
     for layer_index, layer in layer_info.items():
+        percentage = 1
+        if layer_index in spatial_map.map_list:
+            percentage = spatial_map.map_list[layer_index].percentage
         pixelwise_layer_info[layer_index] = {'B': 1, 'K': 1, 'C': 1, 'OY': 1, 'OX': 1, 'FY': 1, 'FX': 1, 'SY': 1, 'SX': 1,
                                           'SFY': 1, 'SFX': 1, 'PY': 0, 'PX': 0}
-        pixelwise_layer_info[layer_index]['B'] = layer['B'] * layer['OY'] * layer['OX']
+        pixelwise_layer_info[layer_index]['B'] = round(percentage * layer['B'] * layer['OY'] * layer['OX'])
         if layer['SX'] != 1:
             pixelwise_layer_info[layer_index]['B'] //= layer['SX']
         if layer['SY'] != 1:
