@@ -36,10 +36,14 @@ class SpatialMapList():
         for index in layer_indices:
             map_list[index] = SpatialMap(index, layer_info[index]['OX'], layer_info[index]['OY'])
         self.map_list = map_list
+        self.map_list_input = []
 
     def load(self, path):
         for index in self.map_list:
             self.map_list[index].load(path + "_%d" % (index))
+
+    def load_extend(self, layer_info):
+        self.map_list_input = map_data_extension(self.map_list, layer_info)
 
 def max_pixelwise_unrolling(input_settings, layer_spec):
     max_per_layer = []
@@ -102,4 +106,54 @@ def pixelwise_layer_transform(layer_info, spatial_map):
 def extract_map_info(layer_info, layer_indices, path):
     spatial_map = SpatialMapList(layer_indices, layer_info)
     spatial_map.load(path)
+    spatial_map.load_extend(layer_info)
     return spatial_map
+
+def map_data_extension(spatial_map_list,layer_info):
+    '''
+    Makes a new variable, which is the spatial map, but with all of the input data that is necessary to operate.
+    This is done by extending the current map's boundary with a certain thickness, which is derived from the kernel size
+    '''
+    spatial_map_list_extended = deepcopy(spatial_map_list)
+    spatial_map_list_extended = extend_map_list(spatial_map_list_extended, layer_info)
+    spatial_map_reference = deepcopy(spatial_map_list_extended)
+    for layer in spatial_map_reference.keys():
+        map = spatial_map_reference[layer].map
+        extend_factor = int((layer_info[layer]['FX'] - 1) / 2)
+
+        #TODO: currently only unrolling over the points of the original map, but needs to be of all of the point + now need to add edge cases to has_neighbour
+        for iy in range(extend_factor, spatial_map_reference[layer].size[1]-extend_factor):
+            for ix in range(extend_factor, spatial_map_reference[layer].size[0]-extend_factor):
+                if spatial_map_list_extended[layer].map[iy][ix] == 0:
+                    if has_neighbour(map, extend_factor, ix, iy):
+                        spatial_map_list_extended[layer].map[iy][ix] == 1
+    return spatial_map_list_extended
+
+def extend_map_list(map_list,layer_info):
+    '''
+    Extends the maps in map_list with zeros all around to accommodate for the input data size,
+    this is done by extending with the required size according to the kernel size
+    '''
+    for layer in map_list.keys():
+        assert layer_info[layer]['FX'] == layer_info[layer]['FY'], "Assymetrical kernel in layer %d" %(layer)
+        extend_factor = int((layer_info[layer]['FX'] - 1)/2)
+        [size_x, size_y] = [sum(x) for x in zip(map_list[layer].size, [2*extend_factor,2*extend_factor])]
+        for ie in range(extend_factor):
+            for iy in range(len(map_list[layer].map)):
+                map_list[layer].map[iy].insert(0,0)
+                map_list[layer].map[iy].append(0)
+        for ie in range(extend_factor):
+            map_list[layer].map.insert(0,size_x*[0])
+            map_list[layer].map.append(size_x * [0])
+        map_list[layer].size = [size_x, size_y]
+    return map_list
+
+def has_neighbour(map,extend_factor,ix,iy):
+    '''
+    checks whether withing the neighbourghood of size extend_factor of (ix,iy) there is a 1
+    '''
+    for ex in range(-extend_factor,extend_factor+1):
+        for ey in range(extend_factor+1):
+            if (map[iy+ey][ix+ex] == 1) or (map[iy-ey][ix+ex] == 1):
+                return True
+    return False

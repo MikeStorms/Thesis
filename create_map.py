@@ -144,8 +144,8 @@ def update_percentage():
 if __name__ == "__main__" :
     app = Tk()
     buttonPressed = False
-    grid_x = 56
-    grid_y = 56
+    grid_x = 58
+    grid_y = 58
     pixels = 950//max(grid_y,grid_x)
     grid = CellGrid(app, grid_x, grid_y, pixels)
     Button1 = Button(app, text="Save", command=pressed)
