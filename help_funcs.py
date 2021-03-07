@@ -122,10 +122,10 @@ def map_data_extension(spatial_map_list,layer_info):
         extend_factor = int((layer_info[layer]['FX'] - 1) / 2)
 
         #TODO: currently only unrolling over the points of the original map, but needs to be of all of the point + now need to add edge cases to has_neighbour
-        for iy in range(extend_factor, spatial_map_reference[layer].size[1]-extend_factor):
-            for ix in range(extend_factor, spatial_map_reference[layer].size[0]-extend_factor):
+        for iy in range(spatial_map_reference[layer].size[1]):
+            for ix in range(spatial_map_reference[layer].size[0]):
                 if spatial_map_list_extended[layer].map[iy][ix] == 0:
-                    if has_neighbour(map, extend_factor, ix, iy):
+                    if has_neighbour(map, extend_factor, ix, iy, spatial_map_reference[layer].size):
                         spatial_map_list_extended[layer].map[iy][ix] == 1
     return spatial_map_list_extended
 
@@ -148,12 +148,30 @@ def extend_map_list(map_list,layer_info):
         map_list[layer].size = [size_x, size_y]
     return map_list
 
-def has_neighbour(map,extend_factor,ix,iy):
+def has_neighbour(map, extend_factor, ix, iy, size):
     '''
     checks whether withing the neighbourghood of size extend_factor of (ix,iy) there is a 1
     '''
-    for ex in range(-extend_factor,extend_factor+1):
-        for ey in range(extend_factor+1):
-            if (map[iy+ey][ix+ex] == 1) or (map[iy-ey][ix+ex] == 1):
+    lowerbound_x = -extend_factor
+    upperbound_x = extend_factor+1
+    lowerbound_y = -extend_factor
+    upperbound_y = extend_factor+1
+    if ix < extend_factor:
+        for i in range(extend_factor):
+            lowerbound_x += 1
+    elif ix > size[0] - extend_factor - 1:
+        for i in range(extend_factor):
+            upperbound_x -= 1
+
+    if iy < extend_factor:
+        for i in range(extend_factor):
+            lowerbound_y += 1
+    elif iy > size[1] - extend_factor - 1:
+        for i in range(extend_factor):
+            upperbound_y -= 1
+
+    for ex in range(lowerbound_x, upperbound_x):
+        for ey in range(lowerbound_y, upperbound_y):
+            if map[iy+ey][ix+ex] == 1:
                 return True
     return False
