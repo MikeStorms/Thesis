@@ -118,10 +118,12 @@ def save_state(self):
 
 
 def load_state():
+
     f = open('map', 'rb')
     grid.grid_bin = pickle.load(f)
     f.close
-    print('grid_bin', grid.grid_bin)
+
+    #print('grid_bin', grid.grid_bin)
     for idx, line in enumerate(grid.grid_bin):
         for idy, val in enumerate(line):
             if val == True:
@@ -132,6 +134,37 @@ def load_state():
     update_percentage()
     #print(grid.grid_bin)
 
+def load_state_1():
+
+    f = open('map_1', 'rb')
+    grid.grid_bin = pickle.load(f)
+    f.close
+    #print('grid_bin', grid.grid_bin)
+    for idx, line in enumerate(grid.grid_bin):
+        for idy, val in enumerate(line):
+            if val == True:
+                grid.grid[idx][idy].fill = True
+            else:
+                grid.grid[idx][idy].fill = False
+    grid.draw()
+    update_percentage()
+    #print(grid.grid_bin)
+
+def load_state_2():
+
+    f = open('map_2', 'rb')
+    grid.grid_bin = pickle.load(f)
+    f.close
+    #print('grid_bin', grid.grid_bin)
+    for idx, line in enumerate(grid.grid_bin):
+        for idy, val in enumerate(line):
+            if val == True:
+                grid.grid[idx][idy].fill = True
+            else:
+                grid.grid[idx][idy].fill = False
+    grid.draw()
+    update_percentage()
+    #print(grid.grid_bin)
 
 def pressed():
     save_state(grid)
@@ -141,12 +174,6 @@ def update_percentage():
     percentage = number_true/(grid_y*grid_x)
     Percentage.configure(text = percentage)
 
-def view_maps(map1, map2, size):
-    app = Tk()
-    pixels = 950//max(size[0], size[1])
-    grid = CellGrid(app, size[0], size[1], pixels)
-    Button1 = Button(app, text="Map1", command=pressed)
-    Button2 = Button(app, text="Map2", command=load_state)
 
 if __name__ == "__main__" :
     app = Tk()
@@ -157,9 +184,13 @@ if __name__ == "__main__" :
     grid = CellGrid(app, grid_x, grid_y, pixels)
     Button1 = Button(app, text="Save", command=pressed)
     Button2 = Button(app, text="Load", command=load_state)
+    Button3 = Button(app, text="Map1", command=load_state_1)
+    Button4 = Button(app, text="Map2", command=load_state_2)
     Percentage = Label(text="", fg="Red", font=("Helvetica", "18"))
     Button1.pack()
     Button2.pack()
+    Button3.pack()
+    Button4.pack()
     Percentage.pack()
     grid.pack()
     app.mainloop()

@@ -1,6 +1,7 @@
 import classes as cls
 from copy import deepcopy
 import pickle
+import create_map
 
 class SpatialMap():
     def __init__(self,layer_index,OX,OY):
@@ -126,7 +127,13 @@ def map_data_extension(spatial_map_list,layer_info):
             for ix in range(spatial_map_reference[layer].size[0]):
                 if spatial_map_list_extended[layer].map[iy][ix] == 0:
                     if has_neighbour(map, extend_factor, ix, iy, spatial_map_reference[layer].size):
-                        spatial_map_list_extended[layer].map[iy][ix] == 1
+                        spatial_map_list_extended[layer].map[iy][ix] = 1
+        f = open('map_1', 'wb')
+        pickle.dump(spatial_map_list_extended[layer].map, f, 2)
+        f.close
+        f = open('map_2', 'wb')
+        pickle.dump(spatial_map_reference[layer].map, f, 2)
+        f.close
     return spatial_map_list_extended
 
 def extend_map_list(map_list,layer_info):
