@@ -46,6 +46,13 @@ class SpatialMapList():
     def load_extend(self, layer_info):
         self.map_list_input = map_data_extension(self.map_list, layer_info)
 
+class InputBufferConfig():
+    def __init__(self, points_visited, points_stored, cum_count):
+        self.points_visited = points_visited
+        self.points_stored = points_stored
+        self.cum_count = cum_count
+
+
 def max_pixelwise_unrolling(input_settings, layer_spec):
     max_per_layer = []
     layers = [cls.Layer.extract_layer_info(layer_spec.layer_info[layer_number])
@@ -108,6 +115,9 @@ def extract_map_info(layer_info, layer_indices, path):
     spatial_map = SpatialMapList(layer_indices, layer_info)
     spatial_map.load(path)
     spatial_map.load_extend(layer_info)
+    buffer = 200
+    optimal_spatial_mapping_search(spatial_map.map_list[3].map, spatial_map.map_list_input[3].map, buffer, 1)
+
     return spatial_map
 
 def map_data_extension(spatial_map_list,layer_info):
@@ -121,8 +131,6 @@ def map_data_extension(spatial_map_list,layer_info):
     for layer in spatial_map_reference.keys():
         map = spatial_map_reference[layer].map
         extend_factor = int((layer_info[layer]['FX'] - 1) / 2)
-
-        #TODO: currently only unrolling over the points of the original map, but needs to be of all of the point + now need to add edge cases to has_neighbour
         for iy in range(spatial_map_reference[layer].size[1]):
             for ix in range(spatial_map_reference[layer].size[0]):
                 if spatial_map_list_extended[layer].map[iy][ix] == 0:
@@ -182,3 +190,76 @@ def has_neighbour(map, extend_factor, ix, iy, size):
             if map[iy+ey][ix+ex] == 1:
                 return True
     return False
+
+def optimal_spatial_mapping_search(output_map, input_map, buffer_size, extend_factor):
+
+    max_points_visited = 0
+    best_configs = []
+    for iy in range(len(output_map)):
+        for ix in range(len(output_map[0])):
+            if output_map[iy][ix] == 1:
+                cum_count = 0
+                points_stored = [[0 for i in range(len(input_map[0]))] for j in range(len(input_map))]
+                points_visited = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
+                possible_configs = recursive_search(output_map, input_map, points_stored, points_visited, buffer_size, cum_count, ix, iy, extend_factor)
+                for ib, config in enumerate(possible_configs):
+                    current_points_visited = sum([sum(x) for x in config.points_visited])
+                    if current_points_visited == max_points_visited:
+                        best_configs.append(config)
+                    elif current_points_visited > max_points_visited:
+                        max_points_visited = current_points_visited
+                        best_configs = [config]
+
+
+def recursive_search(output_map, input_map, points_stored, points_visited, buffer_size, cum_count, ix, iy, extend_factor):
+    if sum([sum(x) for x in points_stored]) != cum_count:
+        print('fault')
+    #init
+    prev_cum_count = deepcopy(cum_count)
+    prev_points_stored = deepcopy(points_stored)
+    prev_points_visited = deepcopy(points_visited)
+
+    #fill in
+    points_visited[iy][ix] = 1
+
+    lowerbound_x = -extend_factor
+    upperbound_x = extend_factor + 1
+    lowerbound_y = -extend_factor
+    upperbound_y = extend_factor + 1
+
+    for ex in range(lowerbound_x, upperbound_x):
+        for ey in range(lowerbound_y, upperbound_y):
+            if points_stored[iy+extend_factor+ey][ix+extend_factor+ex] == 0:
+                cum_count += 1
+                points_stored[iy+extend_factor+ey][ix+extend_factor+ex] = 1
+
+    #evaluate
+    if cum_count > buffer_size:
+        return InputBufferConfig(prev_points_visited, prev_points_stored, sum([sum(x) for x in prev_points_stored]))
+    #search for next point
+    lowerbound_x = -1
+    upperbound_x = 2
+    lowerbound_y = -1
+    upperbound_y = 2
+    if ix == 0:
+        lowerbound_x = 0
+    elif ix == len(output_map[0])-1:
+        upperbound_x = 1
+
+    if iy == 0:
+        lowerbound_y = 0
+    elif iy == len(output_map)-1:
+        upperbound_y = 1
+
+    current_buffer_list = []
+    for ex in range(lowerbound_x, upperbound_x):
+        for ey in range(lowerbound_y, upperbound_y):
+            if output_map[iy+ey][ix+ex] == 1 and points_visited[iy+ey][ix+ex] == 0:
+                new_buffer_list = recursive_search(output_map, input_map, points_stored, points_visited, buffer_size, cum_count, ix+ex, iy+ey, extend_factor)
+                if type(new_buffer_list) == list:
+                    for buffer in new_buffer_list:
+                        current_buffer_list.append(buffer)
+                else:
+                    current_buffer_list.append(new_buffer_list)
+
+    return current_buffer_list
