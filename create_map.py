@@ -36,6 +36,42 @@ class Cell():
 
             self.master.create_rectangle(xmin, ymin, xmax, ymax, fill = fill, outline = outline)
 
+    def draw_colored(self):
+        if self.master != None :
+            colors = ["blue4", "cyan2", "green2", "OliveDrab2", "yellow2", "DarkOrange2", "red3", "violet red", "purple4", "SlateBlue1"]
+            outline = "black"
+            if self.fill == 0:
+                fill = "white"
+            else:
+                fill = colors[self.fill % 10]
+
+            xmin = self.abs * self.size
+            xmax = xmin + self.size
+            ymin = self.ord * self.size
+            ymax = ymin + self.size
+
+            self.master.create_rectangle(xmin, ymin, xmax, ymax, fill = fill, outline = outline)
+
+    def draw_edges(self, edge):
+        """ order to the cell to draw its representation on the canvas """
+        if self.master != None :
+            fill = Cell.FILLED_COLOR_BG
+            outline = Cell.FILLED_COLOR_BORDER
+
+            if not self.fill:
+                fill = Cell.EMPTY_COLOR_BG
+                outline = Cell.EMPTY_COLOR_BORDER
+
+            if edge:
+                fill = "red"
+                outline = "yellow"
+            xmin = self.abs * self.size
+            xmax = xmin + self.size
+            ymin = self.ord * self.size
+            ymax = ymin + self.size
+
+            self.master.create_rectangle(xmin, ymin, xmax, ymax, fill = fill, outline = outline)
+
 class CellGrid(Canvas):
     def __init__(self,master, rowNumber, columnNumber, cellSize, *args, **kwargs):
         Canvas.__init__(self, master, width = cellSize * columnNumber , height = cellSize * rowNumber, *args, **kwargs)
@@ -75,6 +111,16 @@ class CellGrid(Canvas):
         for row in self.grid:
             for cell in row:
                 cell.draw()
+
+    def draw_colored(self):
+        for row in self.grid:
+            for cell in row:
+                cell.draw_colored()
+
+    def draw_edges(self, edges):
+        for iy, row in enumerate(self.grid):
+            for ix, cell in enumerate(row):
+                cell.draw_edges(edges[iy][ix])
 
     def _eventCoords(self, event):
         row = int(event.y / self.cellSize)
@@ -166,8 +212,53 @@ def load_state_2():
     update_percentage()
     #print(grid.grid_bin)
 
+def load_buffer_deterministic():
+    f = open('map_deterministic', 'rb')
+    grid.grid_bin = pickle.load(f)
+    f.close
+
+    for idx, line in enumerate(grid.grid_bin):
+        for idy, val in enumerate(line):
+            grid.grid[idx][idy].fill = val
+    grid.draw_colored()
+
+def load_buffer_stochastic():
+    f = open('map_stochastic', 'rb')
+    grid.grid_bin = pickle.load(f)
+    f.close
+
+    for idx, line in enumerate(grid.grid_bin):
+        for idy, val in enumerate(line):
+            grid.grid[idx][idy].fill = val
+    grid.draw_colored()
+
+def load_buffer_stochastic_edges():
+    f = open('map_stochastic_edges', 'rb')
+    grid.grid_bin = pickle.load(f)
+    f.close
+
+    for idx, line in enumerate(grid.grid_bin):
+        for idy, val in enumerate(line):
+            grid.grid[idx][idy].fill = val
+    grid.draw_colored()
+
+def load_edges():
+    f = open('map_edges', 'rb')
+    edges = pickle.load(f)
+    f.close
+
+    f = open('map', 'rb')
+    grid.grid_bin = pickle.load(f)
+    f.close
+
+    for idx, line in enumerate(grid.grid_bin):
+        for idy, val in enumerate(line):
+            grid.grid[idx][idy].fill = val
+    grid.draw_edges(edges)
+
 def pressed():
     save_state(grid)
+
 
 def update_percentage():
     number_true = len([item for row in grid.grid_bin for item in row if item==True])
@@ -178,14 +269,17 @@ def update_percentage():
 if __name__ == "__main__" :
     app = Tk()
     buttonPressed = False
-    grid_x = 58
-    grid_y = 58
+    grid_x = 56
+    grid_y = 56
     pixels = 950//max(grid_y, grid_x)
     grid = CellGrid(app, grid_x, grid_y, pixels)
+    #for regular load: load_state
+    #for the map extension: load_state_1 & load_state_2
+    #for the buffer allocation: load_buffer_deterministic & load_buffer_stochastic & load_buffer_stochastic_edges
     Button1 = Button(app, text="Save", command=pressed)
-    Button2 = Button(app, text="Load", command=load_state)
-    Button3 = Button(app, text="Map1", command=load_state_1)
-    Button4 = Button(app, text="Map2", command=load_state_2)
+    Button2 = Button(app, text="Load", command=load_buffer_deterministic)
+    Button3 = Button(app, text="Map1", command=load_buffer_stochastic)
+    Button4 = Button(app, text="Map2", command=load_buffer_stochastic_edges)
     Percentage = Label(text="", fg="Red", font=("Helvetica", "18"))
     Button1.pack()
     Button2.pack()

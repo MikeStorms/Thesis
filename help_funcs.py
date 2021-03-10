@@ -38,6 +38,7 @@ class SpatialMapList():
             map_list[index] = SpatialMap(index, layer_info[index]['OX'], layer_info[index]['OY'])
         self.map_list = map_list
         self.map_list_input = []
+        self.linewise_edges = []
 
     def load(self, path):
         for index in self.map_list:
@@ -45,6 +46,10 @@ class SpatialMapList():
 
     def load_extend(self, layer_info):
         self.map_list_input = map_data_extension(self.map_list, layer_info)
+
+    def load_linewise_edges(self, layer_info, layer_indices):
+        self.linewise_edges = linewise_edges_approx(self.map_list, layer_info)
+        self.linewise_edges_input = linewise_edged_extended(self.linewise_edges, layer_info, layer_indices)
 
 class InputBufferConfig():
     def __init__(self, points_visited, points_stored, cum_count):
@@ -78,6 +83,11 @@ def max_pixelwise_unrolling(input_settings, layer_spec):
     return max_per_layer, [layers_min, min_unrolling]
 
 def pixelwise_layer_spec(layers):
+    '''
+    Switches the specification to a pixelwise specification
+    :param layers:
+    :return:
+    '''
     pixelwise_layers = deepcopy(layers)
     for il,layer in enumerate(pixelwise_layers):
         layer.OX = 1
@@ -91,6 +101,12 @@ def pixelwise_layer_spec(layers):
     return pixelwise_layers
 
 def pixelwise_layer_transform(layer_info, spatial_map):
+    '''
+    Converges the layer_info into pixelwise layer info
+    :param layer_info:
+    :param spatial_map:
+    :return:
+    '''
     pixelwise_layer_info = {}
     for layer_index, layer in layer_info.items():
         percentage = 1
@@ -115,9 +131,9 @@ def extract_map_info(layer_info, layer_indices, path):
     spatial_map = SpatialMapList(layer_indices, layer_info)
     spatial_map.load(path)
     spatial_map.load_extend(layer_info)
-    buffer = 200
-    optimal_spatial_mapping_search(spatial_map.map_list[3].map, spatial_map.map_list_input[3].map, buffer, 1)
-
+    spatial_map.load_linewise_edges(layer_info, layer_indices)
+    buffer = 50
+    linewise_operation(spatial_map.map_list_input[3].map, spatial_map.map_list[3].map, buffer, 1, spatial_map.linewise_edges[3].map, spatial_map.linewise_edges_input[3].map)
     return spatial_map
 
 def map_data_extension(spatial_map_list,layer_info):
@@ -130,18 +146,20 @@ def map_data_extension(spatial_map_list,layer_info):
     spatial_map_reference = deepcopy(spatial_map_list_extended)
     for layer in spatial_map_reference.keys():
         map = spatial_map_reference[layer].map
+        if map == []:
+            continue
         extend_factor = int((layer_info[layer]['FX'] - 1) / 2)
         for iy in range(spatial_map_reference[layer].size[1]):
             for ix in range(spatial_map_reference[layer].size[0]):
                 if spatial_map_list_extended[layer].map[iy][ix] == 0:
                     if has_neighbour(map, extend_factor, ix, iy, spatial_map_reference[layer].size):
                         spatial_map_list_extended[layer].map[iy][ix] = 1
-        f = open('map_1', 'wb')
-        pickle.dump(spatial_map_list_extended[layer].map, f, 2)
-        f.close
-        f = open('map_2', 'wb')
-        pickle.dump(spatial_map_reference[layer].map, f, 2)
-        f.close
+        # f = open('map_1', 'wb')
+        # pickle.dump(spatial_map_list_extended[layer].map, f, 2)
+        # f.close
+        # f = open('map_2', 'wb')
+        # pickle.dump(spatial_map_reference[layer].map, f, 2)
+        # f.close
     return spatial_map_list_extended
 
 def extend_map_list(map_list,layer_info):
@@ -162,6 +180,52 @@ def extend_map_list(map_list,layer_info):
             map_list[layer].map.append(size_x * [0])
         map_list[layer].size = [size_x, size_y]
     return map_list
+
+def linewise_edges_approx(spatial_map_list, layer_info):
+    '''
+    Outputs a map with all the pixels that can be thaught of as edges, meaning that they would require more BW than usual
+    to load do to not having a data dependency
+    :param spatial_map_list:
+    :param layer_info:
+    :return:
+    '''
+    linewise_edge_layers = deepcopy(spatial_map_list)
+    for layer in spatial_map_list.keys():
+        assert layer_info[layer]['FX'] == layer_info[layer]['FY'], "Assymetrical kernel in layer %d" % (layer)
+        if layer_info[layer]['FX'] == 1:
+            linewise_edge_layers[layer].map = []
+            linewise_edge_layers[layer].percentage = 0
+            continue
+        map = spatial_map_list[layer].map
+        layer_linewise_edge = [[0 for i in range(len(map[0]))] for j in range(len(map))]
+        for iy in range(len(map)):
+            for ix in range(len(map[0])):
+                if map[iy][ix] == 1:
+                    second_point_poss = layer_info[layer]['FX']
+                    if ix > len(map) - layer_info[layer]['FX']:
+                        second_point_poss = len(map) - ix
+                    if map[iy][ix-1] == 0 or iy == 0:
+                        layer_linewise_edge[iy][ix] = 1
+                    else:
+                        second_point_good = 0
+                        for ex in range(second_point_poss):
+                            if map[iy-1][ix+ex] == 1:
+                                second_point_good = 1
+                        if not(second_point_good):
+                            layer_linewise_edge[iy][ix] = 1
+        linewise_edge_layers[layer].map = layer_linewise_edge
+
+        # f = open('map_edges', 'wb')p
+        # pickle.dump(layer_linewise_edge, f, 2)
+        # f.close
+    return linewise_edge_layers
+
+def linewise_edged_extended(linewise_edges, layer_info, layer_indices):
+    edges_map = SpatialMapList(layer_indices, layer_info)
+    for layer in layer_indices:
+        edges_map.map_list[layer] = linewise_edges[layer]
+    edges_extended = map_data_extension(edges_map.map_list, layer_info)
+    return edges_extended
 
 def has_neighbour(map, extend_factor, ix, iy, size):
     '''
@@ -192,7 +256,12 @@ def has_neighbour(map, extend_factor, ix, iy, size):
     return False
 
 def optimal_spatial_mapping_search(output_map, input_map, buffer_size, extend_factor):
-
+    '''
+    tries to find the optimal buffer path to maximally utilize the input data reuse by recursively searching
+    for all the different paths and choosing the one that where we can operate the maximal number of points from
+    output_map, while storing all the necessary input data inside buffer_size
+    Buffer_size is in elements, not bits
+    '''
     max_points_visited = 0
     best_configs = []
     for iy in range(len(output_map)):
@@ -212,6 +281,21 @@ def optimal_spatial_mapping_search(output_map, input_map, buffer_size, extend_fa
 
 
 def recursive_search(output_map, input_map, points_stored, points_visited, buffer_size, cum_count, ix, iy, extend_factor):
+    '''
+    :param output_map:
+    :param input_map:
+    :param points_stored:
+    :param points_visited:
+    :param buffer_size:
+    :param cum_count:
+    :param ix:
+    :param iy:
+    :param extend_factor:
+    :return:
+
+    recursively searches for the best path from point [ix,iy] by starting the same search in all neighbouring points
+    that can still fit inside the buffer
+    '''
     if sum([sum(x) for x in points_stored]) != cum_count:
         print('fault')
     #init
@@ -219,8 +303,12 @@ def recursive_search(output_map, input_map, points_stored, points_visited, buffe
     prev_points_stored = deepcopy(points_stored)
     prev_points_visited = deepcopy(points_visited)
 
+    current_cum_count = deepcopy(cum_count)
+    current_points_stored = deepcopy(points_stored)
+    current_points_visited = deepcopy(points_visited)
+
     #fill in
-    points_visited[iy][ix] = 1
+    current_points_visited[iy][ix] = 1
 
     lowerbound_x = -extend_factor
     upperbound_x = extend_factor + 1
@@ -229,12 +317,14 @@ def recursive_search(output_map, input_map, points_stored, points_visited, buffe
 
     for ex in range(lowerbound_x, upperbound_x):
         for ey in range(lowerbound_y, upperbound_y):
-            if points_stored[iy+extend_factor+ey][ix+extend_factor+ex] == 0:
-                cum_count += 1
-                points_stored[iy+extend_factor+ey][ix+extend_factor+ex] = 1
+            if current_points_stored[iy+extend_factor+ey][ix+extend_factor+ex] == 0:
+                current_cum_count += 1
+                current_points_stored[iy+extend_factor+ey][ix+extend_factor+ex] = 1
 
+    if cum_count == 198:
+        print('stop')
     #evaluate
-    if cum_count > buffer_size:
+    if current_cum_count > buffer_size:
         return InputBufferConfig(prev_points_visited, prev_points_stored, sum([sum(x) for x in prev_points_stored]))
     #search for next point
     lowerbound_x = -1
@@ -255,7 +345,7 @@ def recursive_search(output_map, input_map, points_stored, points_visited, buffe
     for ex in range(lowerbound_x, upperbound_x):
         for ey in range(lowerbound_y, upperbound_y):
             if output_map[iy+ey][ix+ex] == 1 and points_visited[iy+ey][ix+ex] == 0:
-                new_buffer_list = recursive_search(output_map, input_map, points_stored, points_visited, buffer_size, cum_count, ix+ex, iy+ey, extend_factor)
+                new_buffer_list = recursive_search(output_map, input_map, current_points_stored, current_points_visited, buffer_size, current_cum_count, ix+ex, iy+ey, extend_factor)
                 if type(new_buffer_list) == list:
                     for buffer in new_buffer_list:
                         current_buffer_list.append(buffer)
@@ -263,3 +353,88 @@ def recursive_search(output_map, input_map, points_stored, points_visited, buffe
                     current_buffer_list.append(new_buffer_list)
 
     return current_buffer_list
+
+def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_map, edge_map_input):
+    current_buffer_map = [[0 for i in range(len(input_map[0]))] for j in range(len(input_map))]
+    current_buffer_size = 0
+    cycles = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
+    buffer_map = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
+    edge_cycles = []
+    buffer_index = 1
+    lowerbound_x = -extend_factor
+    upperbound_x = extend_factor + 1
+    lowerbound_y = -extend_factor
+    upperbound_y = extend_factor + 1
+
+    for iy in range(len(output_map)):
+        for ix in range(len(output_map[0])):
+            if output_map[iy][ix] == 1:
+                cycles_per_pixel = 0
+                buffer_increase = 0
+                for ex in range(lowerbound_x, upperbound_x):
+                    for ey in range(lowerbound_y, upperbound_y):
+                        if current_buffer_map[iy + extend_factor + ey][ix + extend_factor + ex] == 0:
+                            current_buffer_map[iy + extend_factor + ey][ix + extend_factor + ex] = 1
+                            buffer_increase += 1
+                            cycles_per_pixel += 1
+                if (current_buffer_size + buffer_increase) > buffer_size:
+                    buffer_index += 1
+                    current_buffer_size = buffer_increase
+                else:
+                    current_buffer_size += buffer_increase
+                cycles[iy][ix] = cycles_per_pixel
+                buffer_map[iy][ix] = buffer_index
+                if edge_map[iy][ix] == 1:
+                    edge_cycles.append(cycles_per_pixel)
+    buffer_map_deterministic = deepcopy(buffer_map)
+    # f = open('map_deterministic', 'wb')
+    # pickle.dump(buffer_map_deterministic, f, 2)
+    # f.close
+
+    #Stochastic part
+    current_buffer_size = 0
+    buffer_map = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
+    buffer_index = 1
+    average_factor = sum([sum(x) for x in input_map])/sum([sum(x) for x in output_map])
+    for iy in range(len(output_map)):
+        for ix in range(len(output_map[0])):
+            if output_map[iy][ix] == 1:
+                if (current_buffer_size + average_factor) > buffer_size:
+                    buffer_index += 1
+                    current_buffer_size = average_factor
+                else:
+                    current_buffer_size += average_factor
+                buffer_map[iy][ix] = buffer_index
+
+    buffer_map_stochastic = deepcopy(buffer_map)
+    # f = open('map_stochastic', 'wb')
+    # pickle.dump(buffer_map_stochastic, f, 2)
+    # f.close
+
+    #Stochastic with edges
+    current_buffer_size = 0
+    buffer_map = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
+    buffer_index = 1
+    total_data = sum([sum(x) for x in input_map])
+    total_pixels = sum([sum(x) for x in output_map])
+    number_edge_cases = sum([sum(x) for x in edge_map])
+    average_factor_edge = (total_data - (total_pixels - number_edge_cases)) / number_edge_cases
+    for iy in range(len(output_map)):
+        for ix in range(len(output_map[0])):
+            if output_map[iy][ix] == 1:
+                if edge_map[iy][ix] == 1:
+                    average_factor = average_factor_edge
+                else:
+                    average_factor = 1
+                if (current_buffer_size + average_factor) > buffer_size:
+                    buffer_index += 1
+                    current_buffer_size = average_factor
+                else:
+                    current_buffer_size += average_factor
+                buffer_map[iy][ix] = buffer_index
+
+    buffer_map_stochastic_edge = deepcopy(buffer_map)
+    f = open('map_stochastic_edges', 'wb')
+    pickle.dump(buffer_map_stochastic_edge, f, 2)
+    f.close
+    return cycles
