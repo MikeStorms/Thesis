@@ -90,6 +90,9 @@ class Order(object):
         relevant_size_I = [spatial_loop.su_relevant_size_dict['I'][0]] # Init with su @ MAC level
         total_cycles_I = [1]
         MAC_op_I = [prod([loop[1] for loop in spatial_loop.spatial_loop_list])]
+        relevant_input_loop_type_numbers = relevant_loop_type_numbers['I']
+        if input_settings.pixelwise_input_reuse:
+            relevant_input_loop_type_numbers = [5]
         for (loop_type_number, dimension) in order:
             pr_factors = [0, 1, 1, 1, 1] # 0 inserted to match index with pr_loop_type_numbers
             if loop_type_number in pr_loop_type_numbers_I:
@@ -98,7 +101,7 @@ class Order(object):
             pr_size_dict_I[2].append(pr_size_dict_I[2][-1] * pr_factors[2])
             pr_size_dict_I[3].append(pr_size_dict_I[3][-1] * pr_factors[3])
             pr_size_dict_I[4].append(pr_size_dict_I[4][-1] * pr_factors[4])
-            if loop_type_number in relevant_loop_type_numbers['I']:
+            if loop_type_number in relevant_input_loop_type_numbers:
                 relevant_size_I.append(relevant_size_I[-1] * dimension)
             else:
                 relevant_size_I.append(relevant_size_I[-1])
@@ -143,7 +146,7 @@ class Order(object):
         self.irrelevant_loop = {'W': [1], 'I': [spatial_loop.unit_duplicate['I'][0]], 'O': [1]}
 
 
-    def allocate_memory(self, node, level):
+    def allocate_memory(self, node, level, input_settings):
         '''
         Function to (partially) allocate this order for the given MemoryNode.
         This could be a single-operand, 2-level shared, 3-level shared node.
@@ -157,7 +160,7 @@ class Order(object):
         if operands == ('W',):
             self.allocate_memory_W(node, level)
         elif operands == ('I',):
-            self.allocate_memory_I(node, level)
+            self.allocate_memory_I(node, level, input_settings)
         elif operands == ('O',):
             self.allocate_memory_O(node, level)
         elif all(op in ('W','I') for op in operands):
@@ -211,7 +214,7 @@ class Order(object):
 
         # TODO: keep track of total_cycles, irrelevant loop for lightweight temporal_loop
 
-    def allocate_memory_I(self, node, level):
+    def allocate_memory_I(self, node, level, input_settings):
         '''
         Allocate LPFs to this I memory node.
 
@@ -237,7 +240,7 @@ class Order(object):
             pr_su_factor = self.spatial_loop.su_pr_size_dict_input[pr_loop_type_number][level + 1]
             pr_size_copy[pr_loop_type_number] = \
                 [ x * pr_su_factor for x in pr_size_copy[pr_loop_type_number] ]
-        relevant_su_factor = self.spatial_loop.su_relevant_size_dict['I'][level + 1]
+        relevant_su_factor = self.spatial_loop.su_relevant_size_dict['I'][level + 1] #TODO: check what this is 
         relevant_size_copy = [ x * relevant_su_factor for x in relevant_size_copy]
 
         # Calculate required size of this memory for each LPF (using original pr/relevant size)

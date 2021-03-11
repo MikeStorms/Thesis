@@ -608,7 +608,7 @@ def tl_worker_new(tl_list, merged_count_dict, loop_type_order, total_merged_coun
                                         allocated_order = order.allocate_remaining()
                                         break
                                     for node in nodes[level]:
-                                        order.allocate_memory(node, level)
+                                        order.allocate_memory(node, level, input_settings)
                                 
                                 # print(merged_order)
                                 # print('W\t', allocated_order['W'])

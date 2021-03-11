@@ -109,6 +109,7 @@ def pixelwise_layer_transform(layer_info, spatial_map):
     '''
     pixelwise_layer_info = {}
     for layer_index, layer in layer_info.items():
+        assert layer['B'] == 1, "Error: B is not 1 in layer %i" %(layer_index)
         percentage = 1
         if layer_index in spatial_map.map_list:
             percentage = spatial_map.map_list[layer_index].percentage
@@ -219,6 +220,38 @@ def linewise_edges_approx(spatial_map_list, layer_info):
         # pickle.dump(layer_linewise_edge, f, 2)
         # f.close
     return linewise_edge_layers
+
+def linewise_edges_map(spatial_map, FX, FY):
+    x_check = 1
+    y_check = FX
+    layer_linewise_edge = [[0 for i in range(len(spatial_map[0]))] for j in range(len(spatial_map))]
+    if FX == 1 & FY == 1:
+        return []
+    if FX == 1:
+        x_check = 0
+        y_check = 1
+    if FY == 1:
+        y_check = 0
+    for iy in range(len(spatial_map)):
+        for ix in range(len(spatial_map[0])):
+            if spatial_map[iy][ix] == 1:
+                x_valid = 0
+                y_valid = 0
+                if x_check:
+                    if spatial_map[iy][ix - 1] == 1:
+                        x_valid = 1
+                else:
+                    x_valid = 1
+                if y_check != 0:
+                    for ex in range(y_check):
+                        if spatial_map[iy - 1][ix + ex] == 1:
+                            y_valid = 1
+                else:
+                    y_valid = 1
+                if not(x_valid & y_valid):
+                    layer_linewise_edge[iy][ix] = 1
+
+    return layer_linewise_edge
 
 def linewise_edged_extended(linewise_edges, layer_info, layer_indices):
     edges_map = SpatialMapList(layer_indices, layer_info)
@@ -395,9 +428,9 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
                 if edge_map[iy][ix] == 1:
                     edge_cycles.append(cycles_per_pixel)
     buffer_map_deterministic = deepcopy(buffer_map)
-    f = open('map_deterministic', 'wb')
-    pickle.dump(buffer_map_deterministic, f, 2)
-    f.close
+    # f = open('map_deterministic', 'wb')
+    # pickle.dump(buffer_map_deterministic, f, 2)
+    # f.close
 
     #Stochastic part
     current_buffer_size = 0
@@ -420,9 +453,9 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
 
 
     buffer_map_stochastic = deepcopy(buffer_map)
-    f = open('map_stochastic', 'wb')
-    pickle.dump(buffer_map_stochastic, f, 2)
-    f.close
+    # f = open('map_stochastic', 'wb')
+    # pickle.dump(buffer_map_stochastic, f, 2)
+    # f.close
 
     #Stochastic with edges
     current_buffer_size = 0
@@ -451,9 +484,9 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
                 buffer_elements_stochastic_edges[buffer_index] += 1
 
     buffer_map_stochastic_edge = deepcopy(buffer_map)
-    f = open('map_stochastic_edges', 'wb')
-    pickle.dump(buffer_map_stochastic_edge, f, 2)
-    f.close
+    # f = open('map_stochastic_edges', 'wb')
+    # pickle.dump(buffer_map_stochastic_edge, f, 2)
+    # f.close
 
     #equalize the buffer sizes for further comparison
     lengths = [len(buffer_elements_deterministic), len(buffer_elements_stochastic), len(buffer_elements_stochastic_edges)]
@@ -467,3 +500,10 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
     MSE_stochastic = sum([x ** 2 for x in difference_stochastic])/len(difference_stochastic)
     MSE_stochastic_edges = sum([x ** 2 for x in difference_stochastic_edges])/len(difference_stochastic_edges)
     return [average_factor, average_factor_edge]
+
+def average_factor_edges(input_map, output_map, edge_map):
+    total_data = sum([sum(x) for x in input_map])
+    total_pixels = sum([sum(x) for x in output_map])
+    number_edge_cases = sum([sum(x) for x in edge_map])
+    average_factor = (total_data - (total_pixels - number_edge_cases)) / number_edge_cases
+    return average_factor
