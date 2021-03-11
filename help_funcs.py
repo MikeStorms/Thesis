@@ -132,8 +132,8 @@ def extract_map_info(layer_info, layer_indices, path):
     spatial_map.load(path)
     spatial_map.load_extend(layer_info)
     spatial_map.load_linewise_edges(layer_info, layer_indices)
-    buffer = 50
-    linewise_operation(spatial_map.map_list_input[3].map, spatial_map.map_list[3].map, buffer, 1, spatial_map.linewise_edges[3].map, spatial_map.linewise_edges_input[3].map)
+    buffer = 200
+    [average_factor, average_factor_edges] = linewise_operation(spatial_map.map_list_input[3].map, spatial_map.map_list[3].map, buffer, 1, spatial_map.linewise_edges[3].map, spatial_map.linewise_edges_input[3].map)
     return spatial_map
 
 def map_data_extension(spatial_map_list,layer_info):
@@ -354,6 +354,10 @@ def recursive_search(output_map, input_map, points_stored, points_visited, buffe
 
     return current_buffer_list
 
+def lengthen_dict(dict, extension_coeff):
+    for ex in range(extension_coeff):
+        dict[len(dict) + ex + 1] = 0
+
 def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_map, edge_map_input):
     current_buffer_map = [[0 for i in range(len(input_map[0]))] for j in range(len(input_map))]
     current_buffer_size = 0
@@ -361,6 +365,8 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
     buffer_map = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
     edge_cycles = []
     buffer_index = 1
+    buffer_elements_deterministic = {}
+    buffer_elements_deterministic[1] = 0
     lowerbound_x = -extend_factor
     upperbound_x = extend_factor + 1
     lowerbound_y = -extend_factor
@@ -379,42 +385,51 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
                             cycles_per_pixel += 1
                 if (current_buffer_size + buffer_increase) > buffer_size:
                     buffer_index += 1
+                    buffer_elements_deterministic[buffer_index] = 0
                     current_buffer_size = buffer_increase
                 else:
                     current_buffer_size += buffer_increase
                 cycles[iy][ix] = cycles_per_pixel
                 buffer_map[iy][ix] = buffer_index
+                buffer_elements_deterministic[buffer_index] += 1
                 if edge_map[iy][ix] == 1:
                     edge_cycles.append(cycles_per_pixel)
     buffer_map_deterministic = deepcopy(buffer_map)
-    # f = open('map_deterministic', 'wb')
-    # pickle.dump(buffer_map_deterministic, f, 2)
-    # f.close
+    f = open('map_deterministic', 'wb')
+    pickle.dump(buffer_map_deterministic, f, 2)
+    f.close
 
     #Stochastic part
     current_buffer_size = 0
     buffer_map = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
     buffer_index = 1
+    buffer_elements_stochastic = {}
+    buffer_elements_stochastic[1] = 0
     average_factor = sum([sum(x) for x in input_map])/sum([sum(x) for x in output_map])
     for iy in range(len(output_map)):
         for ix in range(len(output_map[0])):
             if output_map[iy][ix] == 1:
                 if (current_buffer_size + average_factor) > buffer_size:
                     buffer_index += 1
+                    buffer_elements_stochastic[buffer_index] = 0
                     current_buffer_size = average_factor
                 else:
                     current_buffer_size += average_factor
                 buffer_map[iy][ix] = buffer_index
+                buffer_elements_stochastic[buffer_index] += 1
+
 
     buffer_map_stochastic = deepcopy(buffer_map)
-    # f = open('map_stochastic', 'wb')
-    # pickle.dump(buffer_map_stochastic, f, 2)
-    # f.close
+    f = open('map_stochastic', 'wb')
+    pickle.dump(buffer_map_stochastic, f, 2)
+    f.close
 
     #Stochastic with edges
     current_buffer_size = 0
     buffer_map = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
     buffer_index = 1
+    buffer_elements_stochastic_edges = {}
+    buffer_elements_stochastic_edges[1] = 0
     total_data = sum([sum(x) for x in input_map])
     total_pixels = sum([sum(x) for x in output_map])
     number_edge_cases = sum([sum(x) for x in edge_map])
@@ -428,13 +443,27 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
                     average_factor = 1
                 if (current_buffer_size + average_factor) > buffer_size:
                     buffer_index += 1
+                    buffer_elements_stochastic_edges[buffer_index] = 0
                     current_buffer_size = average_factor
                 else:
                     current_buffer_size += average_factor
                 buffer_map[iy][ix] = buffer_index
+                buffer_elements_stochastic_edges[buffer_index] += 1
 
     buffer_map_stochastic_edge = deepcopy(buffer_map)
     f = open('map_stochastic_edges', 'wb')
     pickle.dump(buffer_map_stochastic_edge, f, 2)
     f.close
-    return cycles
+
+    #equalize the buffer sizes for further comparison
+    lengths = [len(buffer_elements_deterministic), len(buffer_elements_stochastic), len(buffer_elements_stochastic_edges)]
+    extension_buffer = [max(lengths) - x for x in lengths]
+    lengthen_dict(buffer_elements_deterministic, extension_buffer[0])
+    lengthen_dict(buffer_elements_stochastic, extension_buffer[1])
+    lengthen_dict(buffer_elements_stochastic_edges, extension_buffer[2])
+
+    difference_stochastic = [buffer_elements_deterministic[x] - buffer_elements_stochastic[x] for x in buffer_elements_deterministic.keys()]
+    difference_stochastic_edges = [buffer_elements_deterministic[x] - buffer_elements_stochastic_edges[x] for x in buffer_elements_deterministic.keys()]
+    MSE_stochastic = sum([x ** 2 for x in difference_stochastic])/len(difference_stochastic)
+    MSE_stochastic_edges = sum([x ** 2 for x in difference_stochastic_edges])/len(difference_stochastic_edges)
+    return [average_factor, average_factor_edge]
