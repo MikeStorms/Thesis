@@ -1,7 +1,9 @@
 import classes as cls
 from copy import deepcopy
 import pickle
-import create_map
+import bsgutils
+import itertools
+
 
 class SpatialMap():
     def __init__(self,layer_index,OX,OY):
@@ -31,6 +33,7 @@ class SpatialMap():
         number_true = len([item for row in self.map for item in row if item == 1])
         self.percentage = number_true / (self.size[0] * self.size[1])
 
+
 class SpatialMapList():
     def __init__(self,layer_indices,layer_info):
         map_list = {}
@@ -40,16 +43,27 @@ class SpatialMapList():
         self.map_list_input = []
         self.linewise_edges = []
 
+    def isolate_layer(self, layer_index):
+        self.average_factors = self.average_factors[layer_index]
+        self.edge_maps = self.edge_maps[layer_index]
+        self.map_list = self.map_list[layer_index]
+        self.serial_load_map = self.serial_load_map[layer_index]
+
     def load(self, path):
         for index in self.map_list:
             self.map_list[index].load(path + "_%d" % (index))
 
     def load_extend(self, layer_info):
-        self.map_list_input = map_data_extension(self.map_list, layer_info)
+        self.map_list_input = spatial_map_extension(self.map_list, layer_info)
 
     def load_linewise_edges(self, layer_info, layer_indices):
+        # linewise_edges only used for the simulations in linewise_operation
         self.linewise_edges = linewise_edges_approx(self.map_list, layer_info)
-        self.linewise_edges_input = linewise_edged_extended(self.linewise_edges, layer_info, layer_indices)
+        [average_factors, edge_maps, serial_load_map] = get_average_factors(self.map_list, self.map_list_input, self.linewise_edges, layer_info)
+        self.average_factors = average_factors
+        self.edge_maps = edge_maps
+        self.serial_load_map = serial_load_map
+
 
 class InputBufferConfig():
     def __init__(self, points_visited, points_stored, cum_count):
@@ -82,6 +96,7 @@ def max_pixelwise_unrolling(input_settings, layer_spec):
 
     return max_per_layer, [layers_min, min_unrolling]
 
+
 def pixelwise_layer_spec(layers):
     '''
     Switches the specification to a pixelwise specification
@@ -99,6 +114,7 @@ def pixelwise_layer_spec(layers):
             layer.B //= layers[il].SY
 
     return pixelwise_layers
+
 
 def pixelwise_layer_transform(layer_info, spatial_map):
     '''
@@ -128,22 +144,27 @@ def pixelwise_layer_transform(layer_info, spatial_map):
         pixelwise_layer_info[layer_index]['SY'] = layer['SY']
     return pixelwise_layer_info
 
+
 def extract_map_info(layer_info, layer_indices, path):
     spatial_map = SpatialMapList(layer_indices, layer_info)
     spatial_map.load(path)
     spatial_map.load_extend(layer_info)
     spatial_map.load_linewise_edges(layer_info, layer_indices)
     buffer = 200
-    [average_factor, average_factor_edges] = linewise_operation(spatial_map.map_list_input[3].map, spatial_map.map_list[3].map, buffer, 1, spatial_map.linewise_edges[3].map, spatial_map.linewise_edges_input[3].map)
+    [average_factor, average_factor_edges] = linewise_operation(spatial_map.map_list_input[3].map, spatial_map.map_list[3].map, buffer, 1, spatial_map.linewise_edges[3].map)
     return spatial_map
 
-def map_data_extension(spatial_map_list,layer_info):
+
+def spatial_map_extension(spatial_map_list,layer_info):
     '''
+    ONLY IS USED FOR THE SIMULATION OF THE VISUALISATION,
+    Inputs are SpatialMaps, not arrays
+    
     Makes a new variable, which is the spatial map, but with all of the input data that is necessary to operate.
     This is done by extending the current map's boundary with a certain thickness, which is derived from the kernel size
     '''
     spatial_map_list_extended = deepcopy(spatial_map_list)
-    spatial_map_list_extended = extend_map_list(spatial_map_list_extended, layer_info)
+    spatial_map_list_extended = extend_spatial_map(spatial_map_list_extended, layer_info)
     spatial_map_reference = deepcopy(spatial_map_list_extended)
     for layer in spatial_map_reference.keys():
         map = spatial_map_reference[layer].map
@@ -163,8 +184,29 @@ def map_data_extension(spatial_map_list,layer_info):
         # f.close
     return spatial_map_list_extended
 
-def extend_map_list(map_list,layer_info):
+
+def map_extension(input_map, extend_kernel_x, extend_kernel_y, max_kernel_x, max_kernel_y):
+    input_map_copy = deepcopy(input_map)
+    input_map_extended = extend_map(input_map_copy, max_kernel_x, max_kernel_y)
+    if (extend_kernel_x == 1) & (extend_kernel_y == 1):
+        return input_map_extended
+    input_map_reference = deepcopy(input_map_extended)
+    extend_factor_x = int((extend_kernel_x - 1) / 2)
+    extend_factor_y = int((extend_kernel_y - 1) / 2)
+    for iy in range(len(input_map_reference)):
+        for ix in range(len(input_map_reference[0])):
+            if input_map_reference[iy][ix] == 1:
+                for ey in range(-extend_factor_y, extend_factor_y + 1):
+                    for ex in range(-extend_factor_x, extend_factor_x + 1):
+                        input_map_extended[iy+ey][ix+ex] = 1
+    return input_map_extended
+
+
+def extend_spatial_map(map_list,layer_info):
     '''
+    ONLY USED FOR SIMULATION
+    Input is a SpatialMap, not a list
+
     Extends the maps in map_list with zeros all around to accommodate for the input data size,
     this is done by extending with the required size according to the kernel size
     '''
@@ -181,6 +223,21 @@ def extend_map_list(map_list,layer_info):
             map_list[layer].map.append(size_x * [0])
         map_list[layer].size = [size_x, size_y]
     return map_list
+
+
+def extend_map(map, max_kernel_x, max_kernel_y):
+    extend_factor_x = int((max_kernel_x - 1)/2)
+    extend_factor_y = int((max_kernel_y - 1) / 2)
+    [size_x, size_y] = [sum(x) for x in zip([len(map), len(map[0])], [2*extend_factor_x, 2*extend_factor_y])]
+    for ie in range(extend_factor_x):
+        for iy in range(len(map)):
+            map[iy].insert(0, 0)
+            map[iy].append(0)
+    for ie in range(extend_factor_y):
+        map.insert(0, size_x*[0])
+        map.append(size_x * [0])
+    return map
+
 
 def linewise_edges_approx(spatial_map_list, layer_info):
     '''
@@ -221,11 +278,12 @@ def linewise_edges_approx(spatial_map_list, layer_info):
         # f.close
     return linewise_edge_layers
 
+
 def linewise_edges_map(spatial_map, FX, FY):
     x_check = 1
     y_check = FX
     layer_linewise_edge = [[0 for i in range(len(spatial_map[0]))] for j in range(len(spatial_map))]
-    if FX == 1 & FY == 1:
+    if (FX == 1) & (FY == 1):
         return []
     if FX == 1:
         x_check = 0
@@ -243,7 +301,11 @@ def linewise_edges_map(spatial_map, FX, FY):
                 else:
                     x_valid = 1
                 if y_check != 0:
-                    for ex in range(y_check):
+                    if (y_check > 1) & (ix > len(spatial_map[0]) - FX):
+                        y_check_adjusted = len(spatial_map[0]) - ix
+                    else:
+                        y_check_adjusted = y_check
+                    for ex in range(y_check_adjusted):
                         if spatial_map[iy - 1][ix + ex] == 1:
                             y_valid = 1
                 else:
@@ -253,12 +315,14 @@ def linewise_edges_map(spatial_map, FX, FY):
 
     return layer_linewise_edge
 
+
 def linewise_edged_extended(linewise_edges, layer_info, layer_indices):
     edges_map = SpatialMapList(layer_indices, layer_info)
     for layer in layer_indices:
         edges_map.map_list[layer] = linewise_edges[layer]
-    edges_extended = map_data_extension(edges_map.map_list, layer_info)
+    edges_extended = spatial_map_extension(edges_map.map_list, layer_info)
     return edges_extended
+
 
 def has_neighbour(map, extend_factor, ix, iy, size):
     '''
@@ -287,6 +351,7 @@ def has_neighbour(map, extend_factor, ix, iy, size):
             if map[iy+ey][ix+ex] == 1:
                 return True
     return False
+
 
 def optimal_spatial_mapping_search(output_map, input_map, buffer_size, extend_factor):
     '''
@@ -340,7 +405,7 @@ def recursive_search(output_map, input_map, points_stored, points_visited, buffe
     current_points_stored = deepcopy(points_stored)
     current_points_visited = deepcopy(points_visited)
 
-    #fill in
+    # fill in
     current_points_visited[iy][ix] = 1
 
     lowerbound_x = -extend_factor
@@ -356,10 +421,10 @@ def recursive_search(output_map, input_map, points_stored, points_visited, buffe
 
     if cum_count == 198:
         print('stop')
-    #evaluate
+    # evaluate
     if current_cum_count > buffer_size:
         return InputBufferConfig(prev_points_visited, prev_points_stored, sum([sum(x) for x in prev_points_stored]))
-    #search for next point
+    # search for next point
     lowerbound_x = -1
     upperbound_x = 2
     lowerbound_y = -1
@@ -387,11 +452,13 @@ def recursive_search(output_map, input_map, points_stored, points_visited, buffe
 
     return current_buffer_list
 
+
 def lengthen_dict(dict, extension_coeff):
     for ex in range(extension_coeff):
         dict[len(dict) + ex + 1] = 0
 
-def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_map, edge_map_input):
+
+def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_map):
     current_buffer_map = [[0 for i in range(len(input_map[0]))] for j in range(len(input_map))]
     current_buffer_size = 0
     cycles = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
@@ -432,7 +499,7 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
     # pickle.dump(buffer_map_deterministic, f, 2)
     # f.close
 
-    #Stochastic part
+    # Stochastic part
     current_buffer_size = 0
     buffer_map = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
     buffer_index = 1
@@ -457,7 +524,7 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
     # pickle.dump(buffer_map_stochastic, f, 2)
     # f.close
 
-    #Stochastic with edges
+    # Stochastic with edges
     current_buffer_size = 0
     buffer_map = [[0 for i in range(len(output_map[0]))] for j in range(len(output_map))]
     buffer_index = 1
@@ -488,7 +555,7 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
     # pickle.dump(buffer_map_stochastic_edge, f, 2)
     # f.close
 
-    #equalize the buffer sizes for further comparison
+    # equalize the buffer sizes for further comparison
     lengths = [len(buffer_elements_deterministic), len(buffer_elements_stochastic), len(buffer_elements_stochastic_edges)]
     extension_buffer = [max(lengths) - x for x in lengths]
     lengthen_dict(buffer_elements_deterministic, extension_buffer[0])
@@ -501,9 +568,80 @@ def linewise_operation(input_map, output_map, buffer_size, extend_factor, edge_m
     MSE_stochastic_edges = sum([x ** 2 for x in difference_stochastic_edges])/len(difference_stochastic_edges)
     return [average_factor, average_factor_edge]
 
+
 def average_factor_edges(input_map, output_map, edge_map):
+    if edge_map == []:
+        return 1
     total_data = sum([sum(x) for x in input_map])
     total_pixels = sum([sum(x) for x in output_map])
     number_edge_cases = sum([sum(x) for x in edge_map])
     average_factor = (total_data - (total_pixels - number_edge_cases)) / number_edge_cases
     return average_factor
+
+
+def get_combinations(list1, list2):
+    '''
+    makes all popssible combinations with the restrain that the elements need to come from the respective list
+    :param list1:
+    :param list2:
+    :return:
+    '''
+    comb = []
+    for i in list1:
+        for j in list2:
+            comb.append([i, j])
+    return comb
+
+
+def get_average_factors(map_list, map_list_input, linewise_edges, layer_info):
+    average_factors = {}
+    edge_maps = {}
+    serial_load_map = {}
+    for layer in map_list.keys():
+        max_FX = layer_info[layer]['FX']
+        max_FY = layer_info[layer]['FY']
+        FX_pf = bsgutils.prime_factors(max_FX)
+        FY_pf = bsgutils.prime_factors(max_FY)
+        FX_pf.insert(0, 1)
+        FY_pf.insert(0, 1)
+        kernel_comb = get_combinations(FX_pf, FY_pf)
+
+        average_factors[layer] = {}
+        edge_maps[layer] = {}
+        serial_load_map[layer] = {}
+        for comb in kernel_comb:
+            extension_x = max_FX - (comb[0] - 1)
+            extension_y = max_FY - (comb[1] - 1)
+            output_data_map = map_extension(map_list[layer].map, extension_x, extension_y, max_FX, max_FY)
+            edge_map = linewise_edges_map(output_data_map, comb[0], comb[1])
+            factor = average_factor_edges(map_list_input[layer].map, output_data_map, edge_map)
+            serial_load_map[layer][str(comb)] = get_serial_load_map(output_data_map, edge_map, factor)
+            average_factors[layer][str(comb)] = factor
+            edge_maps[layer][str(comb)] = edge_map
+    return [average_factors, edge_maps, serial_load_map]
+
+
+def get_serial_load_map(map, edge_map, average_factor):
+    if average_factor == 1:
+        return sum([sum(x) for x in map])*[1]
+    serial_load_map = []
+    for iy in range(len(map)):
+        for ix in range(len(map[0])):
+            if map[iy][ix] == 1:
+                if edge_map[iy][ix] == 1:
+                    serial_load_map.append(average_factor)
+                else:
+                    serial_load_map.append(1)
+    return serial_load_map
+
+
+def calc_input_data_pixelwise_data_reuse(fx, fy, c, spatial_map, pixelwise_temporal_unrolling, pixelwise_spatial_unrolling):
+    kernel = [fx, fy]
+    serial_load_map = spatial_map.serial_load_map[str(kernel)]
+    total_unrolling = pixelwise_temporal_unrolling * pixelwise_spatial_unrolling
+    # if (total_unrolling > 10) & (total_unrolling < 100):
+    #     print('B')
+    split_up_load_map = [serial_load_map[i * total_unrolling:(i + 1) * total_unrolling] for i in range((len(serial_load_map) + total_unrolling - 1) // total_unrolling )]
+    sum_load_map = [sum(x) for x in split_up_load_map]
+    max_size_I = max(sum_load_map) * c
+    return max_size_I

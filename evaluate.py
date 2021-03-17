@@ -20,6 +20,7 @@ from classes.layer_rounding import mem_access_count_correct
 from im2col_funcs import pw_layer_col2im
 from output_funcs import CommonSetting, print_xml, print_yaml
 import loma
+import help_funcs
 
 
 def tl_worker(tl_list, input_settings, mem_scheme, layer, spatial_loop, spatial_loop_fractional, spatial_loop_comb,
@@ -152,7 +153,7 @@ def tl_worker(tl_list, input_settings, mem_scheme, layer, spatial_loop, spatial_
 
 
 def mem_scheme_su_evaluate(input_settings, layer_, im2col_layer, layer_index, layer_info, mem_scheme, mem_scheme_index,
-                           ii_su, spatial_unrolling, spatial_unrolling_count, im2col_need_correct, multi_manager):
+                           ii_su, spatial_unrolling, spatial_unrolling_count, im2col_need_correct, multi_manager, spatial_map):
     mem_scheme_count = multi_manager.mem_scheme_count
     list_min_energy = multi_manager.list_min_energy
     list_min_en_output = multi_manager.list_min_en_output
@@ -186,7 +187,8 @@ def mem_scheme_su_evaluate(input_settings, layer_, im2col_layer, layer_index, la
         spatial_loop_comb = [spatial_loop, spatial_loop_fractional]
     else:
         layer_post = layer_info[layer_index]
-        spatial_loop = cls.SpatialLoop.extract_loop_info(mem_scheme.spatial_unrolling[ii_su], layer_post)
+        do_pixelwise_adjustment = input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse
+        spatial_loop = cls.SpatialLoop.extract_loop_info(mem_scheme.spatial_unrolling[ii_su], layer_post, do_pixelwise_adjustment)
         spatial_loop_fractional = None
         spatial_loop_comb = [spatial_loop, spatial_loop]
 
@@ -453,7 +455,7 @@ def mem_scheme_su_evaluate(input_settings, layer_, im2col_layer, layer_index, la
                                           input_settings.mac_array_info['idle_mac_energy'],
                                           mem_scheme.spatial_unrolling)[ii_su]
         mac_costs = [active_mac_cost, idle_mac_cost]
-        fixed_args = [nonmerged_count_dict, loop_type_order, tl_combinations, input_settings, spatial_loop_comb, mem_scheme, precision, layer_comb, mac_costs]
+        fixed_args = [nonmerged_count_dict, loop_type_order, tl_combinations, input_settings, spatial_loop_comb, mem_scheme, precision, layer_comb, mac_costs, spatial_map]
 
         ################################# CALL PARALLEL PROCESSES ##################################
         pool = Pool(processes=n_processes)
@@ -608,7 +610,7 @@ def mem_scheme_su_evaluate(input_settings, layer_, im2col_layer, layer_index, la
 
 
 
-def mem_scheme_evaluate(input_settings, layer_index, layer, im2col_layer, mem_scheme, mem_scheme_index, multi_manager):
+def mem_scheme_evaluate(input_settings, layer_index, layer, im2col_layer, mem_scheme, mem_scheme_index, multi_manager, spatial_map):
     mem_scheme_count = multi_manager.mem_scheme_count
 
     # Check if this is a duplicate layer
@@ -820,7 +822,7 @@ def mem_scheme_evaluate(input_settings, layer_index, layer, im2col_layer, mem_sc
         for ii_su, su in su_zipped:
             p = Process(target=mem_scheme_su_evaluate,
                         args=(input_settings, layer, im2col_layer, layer_index, layer_info, mem_scheme,
-                              mem_scheme_index, ii_su, su, su_count, im2col_need_correct, multi_manager))
+                              mem_scheme_index, ii_su, su, su_count, im2col_need_correct, multi_manager, spatial_map))
             procs.append(p)
 
         for p in procs: p.start()
@@ -919,7 +921,7 @@ def mem_scheme_evaluate(input_settings, layer_index, layer, im2col_layer, mem_sc
                     best_ut_mem_su_str.split('_')[-1], int(group_count*best_ut_en), best_ut, int(round(best_ut_output.area[0]))))
 
 
-def mem_scheme_list_evaluate(input_settings, mem_scheme, mem_scheme_index, layers, multi_manager):
+def mem_scheme_list_evaluate(input_settings, mem_scheme, mem_scheme_index, layers, multi_manager, spatial_map):
 
     mem_scheme_count = multi_manager.mem_scheme_count
 
@@ -945,9 +947,11 @@ def mem_scheme_list_evaluate(input_settings, mem_scheme, mem_scheme_index, layer
             layer_idx = ii_layer_chunk * input_settings.layer_parallel_processing + ii_layer_index
             layer_number = input_settings.layer_number[layer_idx]
             im2col_layer = im2col_layer_chunk_list[ii_layer_chunk][ii_layer_index]
+            spatial_map_layer = deepcopy(spatial_map)
+            spatial_map_layer.isolate_layer(layer_number)
             procs.append(Process(target=mem_scheme_evaluate,
                                  args=(input_settings, layer_number, layer, im2col_layer,
-                                       mem_scheme, mem_scheme_index, multi_manager)))
+                                       mem_scheme, mem_scheme_index, multi_manager, spatial_map_layer)))
 
         for p in procs: p.start()
         for p in procs: p.join()

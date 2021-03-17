@@ -10,7 +10,7 @@ import numpy as np
 
 class SpatialLoop(object):
 
-    def __init__(self, spatial_loop, layer_loop_info):
+    def __init__(self, spatial_loop, layer_loop_info, do_pixelwise_adjustment):
         self.spatial_loop = spatial_loop
 
         Bu = {}
@@ -218,7 +218,10 @@ class SpatialLoop(object):
         Added for LOMA
         '''
         # Relevant loop type numbers for each operand
-        relevant_loop_type_numbers = {'W': [1,2,5,6], 'I': [5,7], 'O': [3,4,6,7]}
+        if do_pixelwise_adjustment:
+            relevant_loop_type_numbers = {'W': [1, 2, 5, 6], 'I': [5], 'O': [3, 4, 6, 7]}
+        else:
+            relevant_loop_type_numbers = {'W': [1,2,5,6], 'I': [5,7], 'O': [3,4,6,7]}
         irrelevant_loop_type_numbers = {'W': [3,4,7], 'I': [], 'O': [1,2,5]}
         
         ## Extract the relevant/irrelevant loop unrolling for each operand
@@ -275,5 +278,5 @@ class SpatialLoop(object):
 
 
     @classmethod
-    def extract_loop_info(cls, spatial_loop, layer_loop_info):
-        return cls(spatial_loop, layer_loop_info)
+    def extract_loop_info(cls, spatial_loop, layer_loop_info, do_pixelwise_adjustment):
+        return cls(spatial_loop, layer_loop_info, do_pixelwise_adjustment)

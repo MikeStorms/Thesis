@@ -503,7 +503,7 @@ def get_smallest_pf(tl):
 
     return smallest_pf
 
-def tl_worker_new(tl_list, merged_count_dict, loop_type_order, total_merged_count, input_settings, spatial_loop_comb, mem_scheme, precision, layer, mac_costs):
+def tl_worker_new(tl_list, merged_count_dict, loop_type_order, total_merged_count, input_settings, spatial_loop_comb, mem_scheme, precision, layer, mac_costs, spatial_map):
     """
     New tl_worker function to handle the multiset loop orderings.
 
@@ -608,7 +608,7 @@ def tl_worker_new(tl_list, merged_count_dict, loop_type_order, total_merged_coun
                                         allocated_order = order.allocate_remaining()
                                         break
                                     for node in nodes[level]:
-                                        order.allocate_memory(node, level, input_settings)
+                                        order.allocate_memory(node, level, input_settings, spatial_map)
                                 
                                 # print(merged_order)
                                 # print('W\t', allocated_order['W'])

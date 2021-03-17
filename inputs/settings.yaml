@@ -46,7 +46,7 @@ temporal_mapping_search_method : loma
 # Greedy mapping allows MAC array to be always fully utilized except for the last time,
   # e.g. to map (C,10) on a row of 8 PEs, without greedy mapping enabled, the tool will map (C,5), (C,5);
   # with greedy mapping enabled, it will map (C,8), (C,2).
-spatial_unrolling_search_method : hint_driven
+spatial_unrolling_search_method : heuristic_v2
 spatial_utilization_threshold : 0.9
 
 # CONV im2col ENABLE
@@ -71,6 +71,6 @@ save_results_on_the_fly: True
 max_nb_lpf_layer: 7
 
 #Set pixelwise_enabled to true to create a pixelwise execution, prohibiting unrolling over OX and OY
-pixelwise_enabled: True
+pixelwise_enabled: False
 map_path : './maps/ResNet101'
-pixelwise_input_reuse : True
+pixelwise_input_reuse : False

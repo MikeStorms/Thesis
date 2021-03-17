@@ -1,5 +1,6 @@
 from copy import deepcopy
 from math import prod
+import help_funcs
 
 class Order(object):
     """
@@ -89,10 +90,9 @@ class Order(object):
                             4: [su_pr_size_dict_input[4][0]]} # 4 = OY; Init with su @ MAC level
         relevant_size_I = [spatial_loop.su_relevant_size_dict['I'][0]] # Init with su @ MAC level
         total_cycles_I = [1]
+        pixelwise_temporal_unrolling = [1]
         MAC_op_I = [prod([loop[1] for loop in spatial_loop.spatial_loop_list])]
         relevant_input_loop_type_numbers = relevant_loop_type_numbers['I']
-        if input_settings.pixelwise_input_reuse:
-            relevant_input_loop_type_numbers = [5]
         for (loop_type_number, dimension) in order:
             pr_factors = [0, 1, 1, 1, 1] # 0 inserted to match index with pr_loop_type_numbers
             if loop_type_number in pr_loop_type_numbers_I:
@@ -102,9 +102,20 @@ class Order(object):
             pr_size_dict_I[3].append(pr_size_dict_I[3][-1] * pr_factors[3])
             pr_size_dict_I[4].append(pr_size_dict_I[4][-1] * pr_factors[4])
             if loop_type_number in relevant_input_loop_type_numbers:
-                relevant_size_I.append(relevant_size_I[-1] * dimension)
+                if input_settings.pixelwise_input_reuse:
+                    if loop_type_number == 5:
+                        relevant_size_I.append(relevant_size_I[-1] * dimension)
+                    else:
+                        relevant_size_I.append(relevant_size_I[-1])
+                    if loop_type_number == 7:
+                        pixelwise_temporal_unrolling.append(pixelwise_temporal_unrolling[-1] * dimension)
+                    else:
+                        pixelwise_temporal_unrolling.append(pixelwise_temporal_unrolling[-1])
+                else:
+                    relevant_size_I.append(relevant_size_I[-1] * dimension)
             else:
                 relevant_size_I.append(relevant_size_I[-1])
+                pixelwise_temporal_unrolling.append(pixelwise_temporal_unrolling[-1])
             total_cycles_I.append(total_cycles_I[-1] * dimension)
             MAC_op_I.append(MAC_op_I[-1] * dimension)
         self.pr_size_dict_I = pr_size_dict_I
@@ -145,8 +156,12 @@ class Order(object):
         ### for input, this will hold the compounded input data reuse
         self.irrelevant_loop = {'W': [1], 'I': [spatial_loop.unit_duplicate['I'][0]], 'O': [1]}
 
+        ### Pixelwise data elements
+        self.pixelwise_temporal_unrolling = pixelwise_temporal_unrolling
+        self.pixelwise_spatial_unrolling = spatial_loop.Bu['I']
 
-    def allocate_memory(self, node, level, input_settings):
+
+    def allocate_memory(self, node, level, input_settings, spatial_map):
         '''
         Function to (partially) allocate this order for the given MemoryNode.
         This could be a single-operand, 2-level shared, 3-level shared node.
@@ -160,17 +175,17 @@ class Order(object):
         if operands == ('W',):
             self.allocate_memory_W(node, level)
         elif operands == ('I',):
-            self.allocate_memory_I(node, level, input_settings)
+            self.allocate_memory_I(node, level, input_settings, spatial_map)
         elif operands == ('O',):
             self.allocate_memory_O(node, level)
         elif all(op in ('W','I') for op in operands):
-            self.allocate_memory_WI(node, level)
+            self.allocate_memory_WI(node, level, input_settings, spatial_map)
         elif all(op in ('I','O') for op in operands):
-            self.allocate_memory_IO(node, level)
+            self.allocate_memory_IO(node, level, input_settings, spatial_map)
         elif all(op in ('W','O') for op in operands):
             self.allocate_memory_WO(node, level)
         elif all(op in ('W','I','O') for op in operands):
-            self.allocate_memory_WIO(node, level)
+            self.allocate_memory_WIO(node, level, input_settings, spatial_map)
         else:
             raise ValueError("Operands = {} for Memory Node {}".format(operands, node.memory_level["name"]))
 
@@ -214,7 +229,7 @@ class Order(object):
 
         # TODO: keep track of total_cycles, irrelevant loop for lightweight temporal_loop
 
-    def allocate_memory_I(self, node, level, input_settings):
+    def allocate_memory_I(self, node, level, input_settings, spatial_map):
         '''
         Allocate LPFs to this I memory node.
 
@@ -240,12 +255,12 @@ class Order(object):
             pr_su_factor = self.spatial_loop.su_pr_size_dict_input[pr_loop_type_number][level + 1]
             pr_size_copy[pr_loop_type_number] = \
                 [ x * pr_su_factor for x in pr_size_copy[pr_loop_type_number] ]
-        relevant_su_factor = self.spatial_loop.su_relevant_size_dict['I'][level + 1] #TODO: check what this is 
+        relevant_su_factor = self.spatial_loop.su_relevant_size_dict['I'][level + 1]
         relevant_size_copy = [ x * relevant_su_factor for x in relevant_size_copy]
 
         # Calculate required size of this memory for each LPF (using original pr/relevant size)
         # as long as the required size is smaller than the maximal size for this node.
-        size_I, _, reuse_I = self.get_size_access_reuse_I(max_size_I, pr_size_copy, relevant_size_copy)
+        size_I, _, reuse_I = self.get_size_access_reuse_I(max_size_I, pr_size_copy, relevant_size_copy, spatial_map, input_settings, level)
 
         # Get the index of the last LPF that fits within the node. Done here instead of inside for loop
         # because of case if all the remaining LPFs will fit in the node.
@@ -322,7 +337,7 @@ class Order(object):
         if self.lpfs_seen_O > self.last_ir_index_O:
             self.all_ir_seen_O = True
 
-    def allocate_memory_WI(self, node, level):
+    def allocate_memory_WI(self, node, level, input_settings, spatial_map):
         '''
         Allocate LPFs to this W-I shared memory node.
 
@@ -360,7 +375,7 @@ class Order(object):
         access_W = self.access_W[:len(size_W)]            
 
         # Get the size and access for the remaining LPFs of I
-        size_I, access_I, reuse_I = self.get_size_access_reuse_I(max_size_I, pr_size_copy, relevant_size_copy)  
+        size_I, access_I, reuse_I = self.get_size_access_reuse_I(max_size_I, pr_size_copy, relevant_size_copy, spatial_map, input_settings, level)
 
         # Convert size_W and size_I to size in bits as operands might use different precision
         size_bit_W = [x * precision_W for x in size_W]
@@ -402,7 +417,7 @@ class Order(object):
         self.irrelevant_loop['I'].append(reuse_I[idx_I])
 
 
-    def allocate_memory_IO(self, node, level):
+    def allocate_memory_IO(self, node, level, input_settings, spatial_map):
         '''
         Allocate LPFs to this I-O shared memory node.
 
@@ -442,7 +457,7 @@ class Order(object):
         self.access_O = [access / su_irrelevant_factor for access in self.access_O]
 
         # Get the size and access for the remaining LPFs of I
-        size_I, access_I, reuse_I = self.get_size_access_reuse_I(max_size_I, pr_size_copy, relevant_size_copy)
+        size_I, access_I, reuse_I = self.get_size_access_reuse_I(max_size_I, pr_size_copy, relevant_size_copy, spatial_map, input_settings, level)
 
         # Get the size and access for the remaining LPFs of O
         size_O = [x for x in self.size_O if x <= max_size_O]
@@ -574,7 +589,7 @@ class Order(object):
         if self.lpfs_seen_O > self.last_ir_index_O:
             self.all_ir_seen_O = True
 
-    def allocate_memory_WIO(self, node, level):
+    def allocate_memory_WIO(self, node, level, input_settings, spatial_map):
         '''
         Allocate LPFs to this W-I-O shared memory node.
 
@@ -623,7 +638,7 @@ class Order(object):
         access_W = self.access_W[:len(size_W)]
 
         # Get the size and access for the remaining LPFs of I
-        size_I, access_I, reuse_I = self.get_size_access_reuse_I(max_size_I, pr_size_copy, relevant_size_copy)
+        size_I, access_I, reuse_I = self.get_size_access_reuse_I(max_size_I, pr_size_copy, relevant_size_copy, spatial_map, input_settings, level)
 
         # Get the size and access for the remaining LPFs of O
         size_O = [x for x in self.size_O if x <= max_size_O]
@@ -728,7 +743,7 @@ class Order(object):
     
         return self.allocated_order
 
-    def get_size_access_reuse_I(self, max_size_I, pr_size_copy, relevant_size_copy):
+    def get_size_access_reuse_I(self, max_size_I, pr_size_copy, relevant_size_copy, spatial_map, input_settings, level):
         '''
         Get the size, access and reuse for the remaining LPFs of I
 
@@ -742,9 +757,12 @@ class Order(object):
         access_I = []
         reuse_I = []
         for i in range(n_lpfs):
-            input_data_size = self.calc_input_data_size(self.pr_size_dict_I[1][i], self.pr_size_dict_I[2][i], 
-                                                        self.pr_size_dict_I[3][i], self.pr_size_dict_I[4][i], 
-                                                        self.relevant_size_I[i])
+            if input_settings.pixelwise_input_reuse:
+                input_data_size = help_funcs.calc_input_data_pixelwise_data_reuse(self.pr_size_dict_I[1][i], self.pr_size_dict_I[2][i], self.relevant_size_I[i], spatial_map, self.pixelwise_temporal_unrolling[i], self.pixelwise_spatial_unrolling[level])
+            else:
+                input_data_size = self.calc_input_data_size(self.pr_size_dict_I[1][i], self.pr_size_dict_I[2][i],
+                                                            self.pr_size_dict_I[3][i], self.pr_size_dict_I[4][i],
+                                                            self.relevant_size_I[i])
             if input_data_size > max_size_I:
                 break
             else:
@@ -753,7 +771,17 @@ class Order(object):
                 if i == 0: # No LPF added, accesses from above should be the same as for previous level
                     input_data_access = self.total_MAC_op / input_data_size
                     # Recalculate input_data_size for data reuse as this levels su can influence data size
-                    input_data_size_reuse = self.calc_input_data_size(pr_size_copy[1][0], pr_size_copy[2][0],
+                    if input_settings.pixelwise_input_reuse:
+                        input_data_size_reuse = help_funcs.calc_input_data_pixelwise_data_reuse(self.pr_size_dict_I[1][0],
+                                                                                          self.pr_size_dict_I[2][0],
+                                                                                          self.relevant_size_I[0],
+                                                                                          spatial_map,
+                                                                                          self.pixelwise_temporal_unrolling[
+                                                                                              0],
+                                                                                          self.pixelwise_spatial_unrolling[
+                                                                                              level])
+                    else:
+                        input_data_size_reuse = self.calc_input_data_size(pr_size_copy[1][0], pr_size_copy[2][0],
                                                                     pr_size_copy[3][0], pr_size_copy[4][0], 
                                                                     relevant_size_copy[0])
                     input_data_reuse = n_MAC / input_data_size_reuse
@@ -787,8 +815,17 @@ class Order(object):
                                 next_lpf_i += 1
                             else:
                                 break
-                    
-                    input_data_size_reuse = self.calc_input_data_size(pr_sizes[1], pr_sizes[2],
+                    if input_settings.pixelwise_input_reuse:
+                        input_data_size_reuse = help_funcs.calc_input_data_pixelwise_data_reuse(pr_sizes[1],
+                                                                                          pr_sizes[2],
+                                                                                          relevant_size_copy[i],
+                                                                                          spatial_map,
+                                                                                          self.pixelwise_temporal_unrolling[
+                                                                                              i],
+                                                                                          self.pixelwise_spatial_unrolling[
+                                                                                              level])
+                    else:
+                        input_data_size_reuse = self.calc_input_data_size(pr_sizes[1], pr_sizes[2],
                                                                     pr_sizes[3], pr_sizes[4],
                                                                     relevant_size_copy[i], fifo=fifo_effect_occurs)                                              
                     input_data_access = self.total_MAC_op / input_data_size_reuse
