@@ -151,7 +151,7 @@ def extract_map_info(layer_info, layer_indices, path):
     spatial_map.load_extend(layer_info)
     spatial_map.load_linewise_edges(layer_info, layer_indices)
     buffer = 200
-    [average_factor, average_factor_edges] = linewise_operation(spatial_map.map_list_input[3].map, spatial_map.map_list[3].map, buffer, 1, spatial_map.linewise_edges[3].map)
+    # [average_factor, average_factor_edges] = linewise_operation(spatial_map.map_list_input[3].map, spatial_map.map_list[3].map, buffer, 1, spatial_map.linewise_edges[3].map)
     return spatial_map
 
 

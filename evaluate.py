@@ -178,16 +178,15 @@ def mem_scheme_su_evaluate(input_settings, layer_, im2col_layer, layer_index, la
     # make sure the # of level in spatial unrolling and in memory scheme match.
     if input_settings.fixed_spatial_unrolling is True and input_settings.mem_hierarchy_single_simulation is False:
         mem_scheme = cmf.su_correction(mem_scheme)
-
+    do_pixelwise_adjustment = input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse
     if input_settings.spatial_unrolling_mode in [4, 5]:
         layer_post = layer_info[layer_index][ii_su]
-        spatial_loop = cls.SpatialLoop.extract_loop_info(mem_scheme.spatial_unrolling[ii_su], layer_post)
+        spatial_loop = cls.SpatialLoop.extract_loop_info(mem_scheme.spatial_unrolling[ii_su], layer_post, do_pixelwise_adjustment)
         spatial_loop_fractional = cls.SpatialLoop.extract_loop_info(mem_scheme.fraction_spatial_unrolling[ii_su],
-                                                                    layer_post)
+                                                                    layer_post, do_pixelwise_adjustment)
         spatial_loop_comb = [spatial_loop, spatial_loop_fractional]
     else:
         layer_post = layer_info[layer_index]
-        do_pixelwise_adjustment = input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse
         spatial_loop = cls.SpatialLoop.extract_loop_info(mem_scheme.spatial_unrolling[ii_su], layer_post, do_pixelwise_adjustment)
         spatial_loop_fractional = None
         spatial_loop_comb = [spatial_loop, spatial_loop]
