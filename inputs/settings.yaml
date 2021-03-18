@@ -20,13 +20,13 @@ fixed_temporal_mapping : False
 # 'False' for only saving the best result.
 # Be careful to put "save_all_temporal_mapping_result" to True, because it can generate large result files.
 save_all_architecture_result : True
-save_all_spatial_unrolling_result : True
+save_all_spatial_unrolling_result : False
 save_all_temporal_mapping_result : False
 
 # WORKLOAD
 # layer_indices can be a single-element list or a multiple-element list or ALL.
 layer_filename : './NN_layers/ResNet101'
-layer_indices : [4]
+layer_indices : [3]
 # layer_indices : ALL
 
 # MULTIPROCESSING
@@ -34,7 +34,7 @@ layer_indices : [4]
 layer_multiprocessing : 1
 architecture_search_multiprocessing : 1
 spatial_unrolling_multiprocessing : 1
-temporal_mapping_multiprocessing: 8
+temporal_mapping_multiprocessing: 1
 
 # TEMPORAL MAPPING GENERATOR SETTINGS
 # search_method : exhaustive / heuristic_v1 / heuristic_v2 / iterative / loma

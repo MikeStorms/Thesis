@@ -8,7 +8,7 @@ import copy
 
 class Loop(object):
 
-    def __init__(self, layer, temporal_loop, spatial_loop, precision, size_check):
+    def __init__(self, layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment):
         """
         Loop class provides:
 
@@ -112,9 +112,14 @@ class Loop(object):
                 IX = int(layer.SX * ((np.prod(temporal_loop.OX['I'][0:level + 1] + spatial_loop.OXu['I'][0:level + 1])).item() - 1) +
                          layer.SFX * ((np.prod(temporal_loop.FX['I'][0:level + 1] + spatial_loop.FXu['I'][0:level + 1])).item() - 1) + 1)
 
-            req_mem_size['I'][level] = int((np.prod(
-                temporal_loop.B['I'][0:level + 1] + temporal_loop.C['I'][0:level + 1] + [IY] + [IX] +
-                spatial_loop.Bu['I'][0:level + 1] + spatial_loop.Cu['I'][0:level + 1])).item())
+            if do_pixelwise_adjustment:
+                req_mem_size['I'][level] = int((np.prod(
+                     temporal_loop.C['I'][0:level + 1] + [IY] + [IX] +
+                     spatial_loop.Cu['I'][0:level + 1])).item())
+            else:
+                req_mem_size['I'][level] = int((np.prod(
+                    temporal_loop.B['I'][0:level + 1] + temporal_loop.C['I'][0:level + 1] + [IY] + [IX] +
+                    spatial_loop.Bu['I'][0:level + 1] + spatial_loop.Cu['I'][0:level + 1])).item())
 
             req_mem_count['I'][level] = spatial_loop.unit_count['I'][level + 1]
 
@@ -155,12 +160,15 @@ class Loop(object):
                     else:
                         break
 
+        irr_loop_I = [5, 7]
+        if do_pixelwise_adjustment:
+            irr_loop_i = [5]
         for level, loops in enumerate(temporal_loop.temporal_loop['I']):
             if not loops:
                 continue
             else:
                 for loop in reversed(loops):
-                    if loop[l_type] in [5, 7]:
+                    if loop[l_type] in irr_loop_i:
                         effective_mem_size['I'][level] = req_mem_size['I'][level] / loop[l_range]
                     else:
                         break
@@ -1132,5 +1140,5 @@ class Loop(object):
     #         return (tot + a + b + c + d) * split_multiplier
 
     @classmethod
-    def extract_loop_info(cls, layer, temporal_loop, spatial_loop, precision, size_check):
-        return cls(layer, temporal_loop, spatial_loop, precision, size_check)
+    def extract_loop_info(cls, layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment):
+        return cls(layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment)

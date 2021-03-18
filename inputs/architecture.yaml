@@ -46,12 +46,16 @@ memory_hint:
 memory_hierarchy:
    local_weight:
        memory_instance: local_w
-       memory_unroll: 4096
+       memory_unroll: 256
        operand_stored: [W]
    local_input:
        memory_instance: local_i
-       memory_unroll: 4096
+       memory_unroll: 256
        operand_stored: [I]
+   inter_input:
+      memory_instance: sram16kb
+      memory_unroll: 1
+      operand_stored: [I]
    on_chip_weight:
        memory_instance: on_chip_w
        memory_unroll: 1
