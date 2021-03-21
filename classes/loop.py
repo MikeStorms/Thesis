@@ -8,7 +8,7 @@ import copy
 
 class Loop(object):
 
-    def __init__(self, layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment):
+    def __init__(self, layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment, input_batch_factor):
         """
         Loop class provides:
 
@@ -113,7 +113,7 @@ class Loop(object):
                          layer.SFX * ((np.prod(temporal_loop.FX['I'][0:level + 1] + spatial_loop.FXu['I'][0:level + 1])).item() - 1) + 1)
 
             if do_pixelwise_adjustment:
-                req_mem_size['I'][level] = int((np.prod(
+                req_mem_size['I'][level] = input_batch_factor['I'][level] * ((np.prod(
                      temporal_loop.C['I'][0:level + 1] + [IY] + [IX] +
                      spatial_loop.Cu['I'][0:level + 1])).item())
             else:
@@ -160,9 +160,9 @@ class Loop(object):
                     else:
                         break
 
-        irr_loop_I = [5, 7]
+        irr_loop_i = [5, 7]
         if do_pixelwise_adjustment:
-            irr_loop_i = [5]
+            irr_loop_i = [5, 7]
         for level, loops in enumerate(temporal_loop.temporal_loop['I']):
             if not loops:
                 continue
@@ -1141,4 +1141,4 @@ class Loop(object):
 
     @classmethod
     def extract_loop_info(cls, layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment):
-        return cls(layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment)
+        return cls(layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment, input_batch_factor)

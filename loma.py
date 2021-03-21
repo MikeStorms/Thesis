@@ -8,6 +8,7 @@ import numpy as np
 from classes.order import Order
 import operator
 import time
+import help_funcs
 
 
 """
@@ -609,7 +610,8 @@ def tl_worker_new(tl_list, merged_count_dict, loop_type_order, total_merged_coun
                                         break
                                     for node in nodes[level]:
                                         order.allocate_memory(node, level, input_settings, spatial_map)
-                                
+
+
                                 # print(merged_order)
                                 # print('W\t', allocated_order['W'])
                                 # print('I\t', allocated_order['I'])
@@ -623,9 +625,10 @@ def tl_worker_new(tl_list, merged_count_dict, loop_type_order, total_merged_coun
                                 # loop = LoopLight(layer_rounded, temporal_loop, spatial_loop, input_settings.precision,
                                 #                 input_settings.fixed_temporal_mapping)
                                 temporal_loop = cls.TemporalLoop.extract_loop_info(layer_rounded, allocated_order, spatial_loop)
+                                input_batch_factor = help_funcs.batch_level_factor(spatial_loop, temporal_loop,
+                                                                                   spatial_map)
                                 loop = cls.Loop.extract_loop_info(layer_rounded, temporal_loop, spatial_loop, input_settings.precision,
-                                                input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
-
+                                                input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse, input_batch_factor)
                                 # Greedy mapping: loop_fractional required
                                 if input_settings.spatial_unrolling_mode in [4, 5]:
                                     ############# Advanced User Configuration #############

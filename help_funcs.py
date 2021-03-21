@@ -2,7 +2,7 @@ import classes as cls
 from copy import deepcopy
 import pickle
 import bsgutils
-import itertools
+import numpy as np
 
 
 class SpatialMap():
@@ -612,7 +612,7 @@ def get_average_factors(map_list, map_list_input, linewise_edges, layer_info):
         for comb in kernel_comb:
             extension_x = max_FX - (comb[0] - 1)
             extension_y = max_FY - (comb[1] - 1)
-            output_data_map = map_extension(map_list[layer].map, extension_x, extension_y, max_FX, max_FY)
+            output_data_map = map_extension(map_list[layer].map, 1, 1, max_FX, max_FY)
             edge_map = linewise_edges_map(output_data_map, comb[0], comb[1])
             factor = average_factor_edges(map_list_input[layer].map, output_data_map, edge_map)
             serial_load_map[layer][str(comb)] = get_serial_load_map(output_data_map, edge_map, factor)
@@ -645,3 +645,40 @@ def calc_input_data_pixelwise_data_reuse(fx, fy, c, spatial_map, pixelwise_tempo
     sum_load_map = [sum(x) for x in split_up_load_map]
     max_size_I = max(sum_load_map) * c
     return max_size_I
+
+
+def batch_level_factor(spatial_loop, temporal_loop, spatial_map):
+    '''
+    In pixelwise operation with data reuse, the B dimension is only not relevant nor irrelevant. For relevant loops, the
+    dimension is used in a product to decide the data size, while in irrelevant loops it is not used. Here, due to
+    input data reuse, a custom factor needs to be used in the multiplication which is between 1 and the batchsize.
+    This is calculated in this function. Normally the factor of previous levels need to multiplied with the current level
+    to get the final factor. But here this is not possible since there is a non linear data dependency in the factor.
+    This means that the previous unrolling of B alter the current factor, e.g. the factor of (B,7) /= the factor of
+    (B,2), (B,7)
+    :param spatial_loop:
+    :param temporal_loop:
+    :param spatial_map:
+    :return:
+    '''
+    input_factor = {}
+    n_levels_I = len(temporal_loop.B['I'])
+    input_factor['I'] = n_levels_I*[1]
+    prev_batch_size = 1
+    prev_kernel = [1, 1]
+    for level in range(n_levels_I):
+        kernel = [prev_kernel[0] * spatial_loop.FXu['I'][level] * temporal_loop.FX['I'][level], prev_kernel[1] * spatial_loop.FYu['I'][level] * temporal_loop.FY['I'][level]]
+        kernel_size = int((np.prod(kernel)))
+        batch_size = prev_batch_size * spatial_loop.Bu['I'][level] * temporal_loop.B['I'][level]
+        serial_load_map = spatial_map.serial_load_map[str(kernel)]
+        split_up_load_map = [serial_load_map[i * batch_size:(i + 1) * batch_size] for i in
+                             range((len(serial_load_map) + batch_size - 1) // batch_size)]
+        split_up_factors = [sum(x) / kernel_size for x in split_up_load_map]
+        max_factor = max(split_up_factors)
+        if max_factor < 1:
+            input_factor['I'][level] = 1.0
+        else:
+            input_factor['I'][level] = max_factor
+        prev_batch_size = batch_size
+        prev_kernel = kernel
+    return input_factor
