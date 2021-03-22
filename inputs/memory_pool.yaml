@@ -1,6 +1,6 @@
 on_chip_w :
    size_bit: 1600000000
-   mem_bw: [2]
+   mem_bw: [128]
    area: [11.74506]
    cost:
      read_word: [0.855199]
@@ -19,7 +19,7 @@ buffer_i :
 
 buffer_o :
    size_bit: 6144000000
-   mem_bw: [16]
+   mem_bw: [256]
    area: [60.686]
    cost:
      read_word: [2.81359]
@@ -89,7 +89,7 @@ sram_eyeriss:
       write_word : [12800]
   mem_type : dual_port_single_buffered
 
-rf512:  
+rf512:
    size_bit: 512
    area: [2847]
    cost:
@@ -97,17 +97,17 @@ rf512:
      write_word: [2.573]
    mem_bw: [32]
    mem_type: dual_port_single_buffered
-      
+
 sram16kb:
   size_bit: 16384
   area: [5159]
   cost:
-    read_word: [4.089]
-    write_word: [4.451]
+     read_word: [0.181359]
+     write_word: [0.279405]
   mem_bw: [32]
   mem_type: dual_port_single_buffered
-    
-sram32kb:  
+
+sram32kb:
   size_bit: 32768
   area: [8481]
   cost:
@@ -126,7 +126,7 @@ sram128kb:
   mem_bw: [32]
   mem_type: dual_port_single_buffered
 
-sram1024kb:  
+sram1024kb:
   size_bit: 1048576
   area: [207747]
   cost:
