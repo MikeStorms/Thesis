@@ -98,7 +98,7 @@ def permutations(multiset):
         h = t
         yield visit(h)
 
-def get_cost_model_output(allocated_order, input_settings, mem_scheme, layer_comb, spatial_loop_comb, ii_su=0):
+def get_cost_model_output(allocated_order, input_settings, mem_scheme, layer_comb, spatial_loop_comb, spatial_map, ii_su=0):
     """
     Return the cost model output of an ordering.
 
@@ -114,8 +114,9 @@ def get_cost_model_output(allocated_order, input_settings, mem_scheme, layer_com
     [spatial_loop, spatial_loop_fractional] = spatial_loop_comb
     msc = mem_scheme
     temporal_loop = cls.TemporalLoop.extract_loop_info(layer_rounded, allocated_order, spatial_loop)
+    input_batch_factor = help_funcs.batch_level_factor(spatial_loop, temporal_loop, spatial_map)
     loop = cls.Loop.extract_loop_info(layer_rounded, temporal_loop, spatial_loop, input_settings.precision,
-                                        input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
+                                        input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse, input_batch_factor)
 
     # Fractional loop for greedy mapping
     if input_settings.spatial_unrolling_mode in [4, 5]:
@@ -123,9 +124,10 @@ def get_cost_model_output(allocated_order, input_settings, mem_scheme, layer_com
         # mem_energy_saving_when_BW_under_utilized = True
         #######################################################
         temporal_loop_fractional = cls.TemporalLoop.extract_loop_info(layer_origin, allocated_order, spatial_loop_fractional)
+        input_batch_factor_fractional = help_funcs.batch_level_factor(spatial_loop_fractional, temporal_loop_fractional, spatial_map)
         loop_fractional = cls.Loop.extract_loop_info(layer_origin, temporal_loop_fractional, spatial_loop_fractional,
                                                         input_settings.precision,
-                                                        input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
+                                                        input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse, input_batch_factor_fractional)
         # if mem_energy_saving_when_BW_under_utilized is False:
         #     loop_fractional = mem_access_count_correct(loop_fractional, loop)
     else:
@@ -637,7 +639,7 @@ def tl_worker_new(tl_list, merged_count_dict, loop_type_order, total_merged_coun
                                     temporal_loop_fractional = cls.TemporalLoop.extract_loop_info(layer_origin, allocated_order, spatial_loop_fractional)
                                     loop_fractional = cls.Loop.extract_loop_info(layer_origin, temporal_loop_fractional, spatial_loop_fractional,
                                                                                 input_settings.precision,
-                                                                                input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
+                                                                                input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse, input_batch_factor)
                                     # if mem_energy_saving_when_BW_under_utilized is False:
                                     #     loop_fractional = mem_access_count_correct(loop_fractional, loop)
 

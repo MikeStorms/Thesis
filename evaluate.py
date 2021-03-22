@@ -512,8 +512,8 @@ def mem_scheme_su_evaluate(input_settings, layer_, im2col_layer, layer_index, la
                 #     f.close()
 
         # Convert output, which is just best allocated order at this point, to a CostModelOutput object
-        best_output_energy = loma.get_cost_model_output(best_output_energy, input_settings, mem_scheme, layer_comb, spatial_loop_comb, ii_su)
-        best_output_utilization = loma.get_cost_model_output(best_output_utilization, input_settings, mem_scheme, layer_comb, spatial_loop_comb, ii_su)
+        best_output_energy = loma.get_cost_model_output(best_output_energy, input_settings, mem_scheme, layer_comb, spatial_loop_comb, spatial_map, ii_su)
+        best_output_utilization = loma.get_cost_model_output(best_output_utilization, input_settings, mem_scheme, layer_comb, spatial_loop_comb, spatial_map, ii_su)
 
 
 

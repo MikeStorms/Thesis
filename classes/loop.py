@@ -1140,5 +1140,5 @@ class Loop(object):
     #         return (tot + a + b + c + d) * split_multiplier
 
     @classmethod
-    def extract_loop_info(cls, layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment):
+    def extract_loop_info(cls, layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment, input_batch_factor):
         return cls(layer, temporal_loop, spatial_loop, precision, size_check, do_pixelwise_adjustment, input_batch_factor)
