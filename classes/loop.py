@@ -113,9 +113,9 @@ class Loop(object):
                          layer.SFX * ((np.prod(temporal_loop.FX['I'][0:level + 1] + spatial_loop.FXu['I'][0:level + 1])).item() - 1) + 1)
 
             if do_pixelwise_adjustment:
-                req_mem_size['I'][level] = input_batch_factor['I'][level] * ((np.prod(
+                req_mem_size['I'][level] = int(input_batch_factor['I'][level] * ((np.prod(
                      temporal_loop.C['I'][0:level + 1] + [IY] + [IX] +
-                     spatial_loop.Cu['I'][0:level + 1])).item())
+                     spatial_loop.Cu['I'][0:level + 1])).item()))
             else:
                 req_mem_size['I'][level] = int((np.prod(
                     temporal_loop.B['I'][0:level + 1] + temporal_loop.C['I'][0:level + 1] + [IY] + [IX] +

@@ -29,7 +29,7 @@ buffer_o :
 middle_i :
    size_bit: 2000
    mem_bw: [64]
-   area: [0.00193054.52]
+   area: [0.00193054]
    cost:
      read_word: [0.00036407]
      write_word: [0.000496581]

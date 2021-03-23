@@ -663,7 +663,7 @@ def batch_level_factor(spatial_loop, temporal_loop, spatial_map):
     '''
     input_factor = {}
     n_levels_I = len(temporal_loop.B['I'])
-    input_factor['I'] = n_levels_I*[1]
+    input_factor['I'] = (n_levels_I)*[1]
     prev_batch_size = 1
     prev_kernel = [1, 1]
     for level in range(n_levels_I):
@@ -681,4 +681,5 @@ def batch_level_factor(spatial_loop, temporal_loop, spatial_map):
             input_factor['I'][level] = max_factor
         prev_batch_size = batch_size
         prev_kernel = kernel
+    input_factor.insert(0, 1.0)
     return input_factor
