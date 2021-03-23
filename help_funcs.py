@@ -636,9 +636,11 @@ def get_serial_load_map(map, edge_map, average_factor):
 
 
 def calc_input_data_pixelwise_data_reuse(fx, fy, c, spatial_map, pixelwise_temporal_unrolling, pixelwise_spatial_unrolling):
+    total_unrolling = pixelwise_temporal_unrolling * pixelwise_spatial_unrolling
+    if total_unrolling == 1:
+        return fy * fy * c
     kernel = [fx, fy]
     serial_load_map = spatial_map.serial_load_map[str(kernel)]
-    total_unrolling = pixelwise_temporal_unrolling * pixelwise_spatial_unrolling
     # if (total_unrolling > 10) & (total_unrolling < 100):
     #     print('B')
     split_up_load_map = [serial_load_map[i * total_unrolling:(i + 1) * total_unrolling] for i in range((len(serial_load_map) + total_unrolling - 1) // total_unrolling )]

@@ -1,7 +1,7 @@
 
 # OUTPUT FILE
 result_path : '/esat/amager/r0653464/results'
-result_filename : Test_20_new_arch_data
+result_filename : Test_21_new_arch_data_hint
 
 # OUTPUT FILE PRINTING MODE
 # 'concise' for printing the basic information for each optimal design point found, i.e. energy and performance.
@@ -46,7 +46,7 @@ temporal_mapping_search_method : loma
 # Greedy mapping allows MAC array to be always fully utilized except for the last time,
   # e.g. to map (C,10) on a row of 8 PEs, without greedy mapping enabled, the tool will map (C,5), (C,5);
   # with greedy mapping enabled, it will map (C,8), (C,2).
-spatial_unrolling_search_method : greedy_mapping_without_hint
+spatial_unrolling_search_method : greedy_mapping_with_hint
 spatial_utilization_threshold : 0.9
 
 # CONV im2col ENABLE
