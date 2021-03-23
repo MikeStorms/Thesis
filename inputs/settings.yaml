@@ -1,7 +1,7 @@
 
 # OUTPUT FILE
-result_path : './results'
-result_filename : ResNet101_pixelwise
+result_path : '/esat/amager/r0653464/results'
+result_filename : Test_19_new_arch
 
 # OUTPUT FILE PRINTING MODE
 # 'concise' for printing the basic information for each optimal design point found, i.e. energy and performance.
@@ -73,4 +73,4 @@ max_nb_lpf_layer: 7
 #Set pixelwise_enabled to true to create a pixelwise execution, prohibiting unrolling over OX and OY
 pixelwise_enabled: True
 map_path : './maps/ResNet101'
-pixelwise_input_reuse : True
+pixelwise_input_reuse : False

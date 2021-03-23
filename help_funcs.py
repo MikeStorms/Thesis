@@ -669,7 +669,7 @@ def batch_level_factor(spatial_loop, temporal_loop, spatial_map):
     for level in range(n_levels_I):
         kernel = [prev_kernel[0] * spatial_loop.FXu['I'][level] * temporal_loop.FX['I'][level], prev_kernel[1] * spatial_loop.FYu['I'][level] * temporal_loop.FY['I'][level]]
         kernel_size = int((np.prod(kernel)))
-        batch_size = prev_batch_size * spatial_loop.Bu['I'][level] * temporal_loop.B['I'][level]
+        batch_size = int(prev_batch_size * spatial_loop.Bu['I'][level] * temporal_loop.B['I'][level])
         serial_load_map = spatial_map.serial_load_map[str(kernel)]
         split_up_load_map = [serial_load_map[i * batch_size:(i + 1) * batch_size] for i in
                              range((len(serial_load_map) + batch_size - 1) // batch_size)]

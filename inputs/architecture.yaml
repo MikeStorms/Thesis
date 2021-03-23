@@ -64,6 +64,10 @@ memory_hierarchy:
        memory_instance: buffer_o
        memory_unroll: 1
        operand_stored: [O]
+   middle_buffer_i:
+       memory_instance: middle_i
+       memory_unroll: 1
+       operand_stored: [I]
 #################################################################################
 
 # If the below parameter is set as True and fixed_spatial_unrolling (in settings.yaml) is False,
