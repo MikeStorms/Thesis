@@ -774,7 +774,7 @@ class Order(object):
                     if input_settings.pixelwise_input_reuse:
                         input_data_size_reuse = help_funcs.calc_input_data_pixelwise_data_reuse(self.pr_size_dict_I[1][0],
                                                                                           self.pr_size_dict_I[2][0],
-                                                                                          self.relevant_size_I[0],
+                                                                                          relevant_size_copy[0],
                                                                                           spatial_map,
                                                                                           self.pixelwise_temporal_unrolling[
                                                                                               0],
