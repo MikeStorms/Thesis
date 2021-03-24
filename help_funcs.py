@@ -650,6 +650,8 @@ def calc_input_data_pixelwise_data_reuse(fx, fy, c, spatial_map, pixelwise_tempo
     if total_unrolling == 1:
         return (fy * fx * c)
     kernel = [fx, fy]
+    if kernel != [1, 1]:
+        print('wowow')
     serial_load_map = spatial_map.serial_load_map[str(kernel)]
     # if (total_unrolling > 10) & (total_unrolling < 100):
     #     print('B')
