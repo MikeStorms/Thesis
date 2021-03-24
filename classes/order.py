@@ -278,7 +278,7 @@ class Order(object):
                 self.pr_seen_below[lt_number] = True
         self.allocated_order_I.append(to_allocate_I) 
         self.remaining_lpf_I = [None] + self.remaining_lpf_I[lpf_index:]
-        self.pixelwise_temporal_unrolling = [None] + self.pixelwise_temporal_unrolling[lpf_index:]
+        self.pixelwise_temporal_unrolling = self.pixelwise_temporal_unrolling[lpf_index - 1:]
         self.pr_size_dict_I = { 1: pr_size_copy[1][lpf_index - 1:], 2: pr_size_copy[2][lpf_index - 1:],
                                 3: pr_size_copy[3][lpf_index - 1:], 4: pr_size_copy[4][lpf_index - 1:] }
         self.relevant_size_I = relevant_size_copy[lpf_index - 1:]
@@ -409,6 +409,7 @@ class Order(object):
                 self.pr_seen_below[lt_number] = True
         self.allocated_order_I.append(to_allocate_I) 
         self.remaining_lpf_I = [None] + self.remaining_lpf_I[idx_I + 1:]
+        self.pixelwise_temporal_unrolling = self.pixelwise_temporal_unrolling[idx_I:]
         self.pr_size_dict_I = { 1: pr_size_copy[1][idx_I:], 2: pr_size_copy[2][idx_I:],
                                 3: pr_size_copy[3][idx_I:], 4: pr_size_copy[4][idx_I:]}
         self.relevant_size_I = relevant_size_copy[idx_I:]
@@ -482,6 +483,7 @@ class Order(object):
                 self.pr_seen_below[lt_number] = True
         self.allocated_order_I.append(to_allocate_I) # start at 1 to excluded 'None'
         self.remaining_lpf_I = [None] + self.remaining_lpf_I[idx_I + 1:]
+        self.pixelwise_temporal_unrolling = self.pixelwise_temporal_unrolling[idx_I:]
         self.pr_size_dict_I = { 1: pr_size_copy[1][idx_I:], 2: pr_size_copy[2][idx_I:],
                                 3: pr_size_copy[3][idx_I:], 4: pr_size_copy[4][idx_I:]}
         self.relevant_size_I = relevant_size_copy[idx_I:]
@@ -680,6 +682,7 @@ class Order(object):
                 self.pr_seen_below[lt_number] = True
         self.allocated_order_I.append(to_allocate_I) # start at 1 to excluded 'None'
         self.remaining_lpf_I = [None] + self.remaining_lpf_I[idx_I + 1:]
+        self.pixelwise_temporal_unrolling = self.pixelwise_temporal_unrolling[idx_I:]
         self.pr_size_dict_I = { 1: pr_size_copy[1][idx_I:], 2: pr_size_copy[2][idx_I:],
                                 3: pr_size_copy[3][idx_I:], 4: pr_size_copy[4][idx_I:]}
         self.relevant_size_I = relevant_size_copy[idx_I:]
