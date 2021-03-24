@@ -1,6 +1,6 @@
 
 # OUTPUT FILE
-result_path : '/esat/amager/r0653464/results'
+result_path : './results'
 result_filename : Test_21_new_arch_data_hint
 
 # OUTPUT FILE PRINTING MODE
