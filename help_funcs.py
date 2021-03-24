@@ -693,5 +693,4 @@ def batch_level_factor(spatial_loop, temporal_loop, spatial_map):
             input_factor['I'][level] = max_factor
         prev_batch_size = batch_size
         prev_kernel = kernel
-    input_factor['I'].insert(0, 1.0)
     return input_factor
