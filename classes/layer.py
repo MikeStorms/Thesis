@@ -27,7 +27,7 @@ class Layer(object):
 
     """
 
-    def __init__(self, B, K, C, OY, OX, FY, FX, SY=1, SX=1, SFY=1, SFX=1, PY=0, PX=0, G=1):
+    def __init__(self, input_map, do_reuse, B, K, C, OY, OX, FY, FX, SY=1, SX=1, SFY=1, SFX=1, PY=0, PX=0, G=1):
         self.B = B
         self.K = K
         self.C = C
@@ -49,9 +49,14 @@ class Layer(object):
         self.total_MAC_op = B * K * C * OY * OX * FY * FX
 
         # Use provided (total) K and C in case of G != 1
-        self.total_data_size = {'W': K * C * FY * FX,
-                                'I': B * C * self.IY * self.IX,
-                                'O': B * K * OY * OX}
+        if do_reuse:
+            self.total_data_size = {'W': K * C * FY * FX,
+                                    'I': int(C * input_map.size[0] * input_map.size[1] * input_map.percentage),
+                                    'O': B * K * OY * OX}
+        else:
+            self.total_data_size = {'W': K * C * FY * FX,
+                                    'I': B * C * self.IY * self.IX,
+                                    'O': B * K * OY * OX}
 
         '''
         total_data_reuse: the total data reuse possibility for each element in W/I/O.
@@ -104,8 +109,8 @@ class Layer(object):
         self.parent = other_layer_number
 
     @classmethod
-    def extract_layer_info(cls, info):
-        return cls(info["B"],
+    def extract_layer_info(cls, info, input_map=[], do_reuse=0):
+        return cls(input_map, do_reuse, info["B"],
                    info["K"], info["C"],
                    info["OY"], info["OX"],
                    info["FY"], info["FX"],

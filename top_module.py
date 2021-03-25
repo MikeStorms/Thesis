@@ -41,7 +41,7 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------------------
     layer_spec, layer_indices = input_funcs.get_layer_spec(input_settings, model=None)
 
-    max_pixelwise_unrolling_per_layer, max_pixelwise_unrolling = help_funcs.max_pixelwise_unrolling(input_settings, layer_spec)
+    #max_pixelwise_unrolling_per_layer, max_pixelwise_unrolling = help_funcs.max_pixelwise_unrolling(input_settings, layer_spec)
 
     # Extract the layer information from the layer_spec
     layers = [cls.Layer.extract_layer_info(layer_spec.layer_info[layer_number])
@@ -51,8 +51,8 @@ if __name__ == "__main__":
     #pixelwise_layer_spec = help_funcs.pixelwise_layer_spec(layers)
     spatial_map = help_funcs.extract_map_info(layer_spec.layer_info, layer_indices, input_settings.map_path)
     layer_info_pixelwise = help_funcs.pixelwise_layer_transform(layer_spec.layer_info, spatial_map)
-    layers_pixelwise = [cls.Layer.extract_layer_info(layer_info_pixelwise[layer_number])
-                     for layer_number in input_settings.layer_number]
+    layers_pixelwise = [cls.Layer.extract_layer_info(layer_info_pixelwise[layer_number], spatial_map.map_list_input[layer_number], input_settings.pixelwise_input_reuse)
+                        for layer_number in input_settings.layer_number]
 
     layer_info_im2col = im2col_layer_transform(layer_spec.layer_info)
     layers_im2col = [cls.Layer.extract_layer_info(layer_info_im2col[layer_number])
