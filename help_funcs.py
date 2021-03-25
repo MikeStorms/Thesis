@@ -659,7 +659,7 @@ def calc_input_data_pixelwise_data_reuse(fx, fy, c, spatial_map, pixelwise_tempo
     return max_size_I
 
 
-def batch_level_factor(spatial_loop, temporal_loop, spatial_map):
+def batch_level_factor(spatial_loop, order, spatial_map):
     '''
     In pixelwise operation with data reuse, the B dimension is only not relevant nor irrelevant. For relevant loops, the
     dimension is used in a product to decide the data size, while in irrelevant loops it is not used. Here, due to
@@ -674,14 +674,24 @@ def batch_level_factor(spatial_loop, temporal_loop, spatial_map):
     :return:
     '''
     input_factor = {}
-    n_levels_I = len(temporal_loop.B['I'])
+    n_levels_I = len(order['I'])
     input_factor['I'] = (n_levels_I)*[1]
     prev_batch_size = 1
     prev_kernel = [1, 1]
     for level in range(n_levels_I):
-        kernel = [prev_kernel[0] * spatial_loop.FXu['I'][level] * temporal_loop.FX['I'][level], prev_kernel[1] * spatial_loop.FYu['I'][level] * temporal_loop.FY['I'][level]]
+        temp_FX = 1
+        temp_FY = 1
+        temp_B = 1
+        for (dimension, unroll) in order['I'][level]:
+            if dimension == 1:
+                temp_FX *= unroll
+            elif dimension == 2:
+                temp_FY *= unroll
+            elif dimension == 7:
+                temp_B *= unroll
+        kernel = [prev_kernel[0] * spatial_loop.FXu['I'][level + 1] * temp_FX, prev_kernel[1] * spatial_loop.FYu['I'][level + 1] * temp_FY]
         kernel_size = int((np.prod(kernel)))
-        batch_size = int(prev_batch_size * spatial_loop.Bu['I'][level] * temporal_loop.B['I'][level])
+        batch_size = int(prev_batch_size * spatial_loop.Bu['I'][level + 1] * temp_B)
         serial_load_map = spatial_map.serial_load_map[str(kernel)]
         split_up_load_map = [serial_load_map[i * batch_size:(i + 1) * batch_size] for i in
                              range((len(serial_load_map) + batch_size - 1) // batch_size)]

@@ -8,7 +8,7 @@ import copy
 
 class TemporalLoop(object):
 
-    def __init__(self, layer, temporal_loop, spatial_loop):
+    def __init__(self, layer, temporal_loop, spatial_loop, input_batch_factor, pixelwise_reuse):
         self.layer = layer
         self.temporal_loop_raw = temporal_loop
 
@@ -147,7 +147,10 @@ class TemporalLoop(object):
         interleaved_storage_IX = [False] * loop_levels['I']
 
         for level in range(loop_levels['I']):
-            ifmap_size['B'][level] = (np.prod(B['I'][0:level + 1] + spatial_loop.Bu['I'][0:level + 2])).item()
+            if pixelwise_reuse:
+                ifmap_size['B'][level] = input_batch_factor['I'][level] * (np.prod(spatial_loop.Bu['I'][0:level + 2])).item()
+            else:
+                ifmap_size['B'][level] = (np.prod(B['I'][0:level + 1] + spatial_loop.Bu['I'][0:level + 2])).item()
             ifmap_size['C'][level] = (np.prod(C['I'][0:level + 1] + spatial_loop.Cu['I'][0:level + 2])).item()
 
             if np.prod(OY['I'][0:level + 1] + spatial_loop.OYu['I'][0:level + 2]) == 1 or \
@@ -349,5 +352,5 @@ class TemporalLoop(object):
         self.interleaved_storage_IX = interleaved_storage_IX
 
     @classmethod
-    def extract_loop_info(cls, layer, temporal_loop, spatial_loop):
-        return cls(layer, temporal_loop, spatial_loop)
+    def extract_loop_info(cls, layer, temporal_loop, spatial_loop, input_batch_factor, pixelwise_reuse):
+        return cls(layer, temporal_loop, spatial_loop, input_batch_factor, pixelwise_reuse)

@@ -113,8 +113,8 @@ def get_cost_model_output(allocated_order, input_settings, mem_scheme, layer_com
     [layer_origin, layer_rounded] = layer_comb
     [spatial_loop, spatial_loop_fractional] = spatial_loop_comb
     msc = mem_scheme
-    temporal_loop = cls.TemporalLoop.extract_loop_info(layer_rounded, allocated_order, spatial_loop)
-    input_batch_factor = help_funcs.batch_level_factor(spatial_loop, temporal_loop, spatial_map)
+    input_batch_factor = help_funcs.batch_level_factor(spatial_loop, allocated_order, spatial_map)
+    temporal_loop = cls.TemporalLoop.extract_loop_info(layer_rounded, allocated_order, spatial_loop, input_batch_factor, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
     loop = cls.Loop.extract_loop_info(layer_rounded, temporal_loop, spatial_loop, input_settings.precision,
                                         input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse, input_batch_factor)
 
@@ -123,8 +123,8 @@ def get_cost_model_output(allocated_order, input_settings, mem_scheme, layer_com
         ############# Advanced User Configuration #############
         # mem_energy_saving_when_BW_under_utilized = True
         #######################################################
-        temporal_loop_fractional = cls.TemporalLoop.extract_loop_info(layer_origin, allocated_order, spatial_loop_fractional)
-        input_batch_factor_fractional = help_funcs.batch_level_factor(spatial_loop_fractional, temporal_loop_fractional, spatial_map)
+        input_batch_factor_fractional = help_funcs.batch_level_factor(spatial_loop_fractional, allocated_order, spatial_map)
+        temporal_loop_fractional = cls.TemporalLoop.extract_loop_info(layer_origin, allocated_order, spatial_loop_fractional, input_batch_factor_fractional, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
         loop_fractional = cls.Loop.extract_loop_info(layer_origin, temporal_loop_fractional, spatial_loop_fractional,
                                                         input_settings.precision,
                                                         input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse, input_batch_factor_fractional)
@@ -626,20 +626,36 @@ def tl_worker_new(tl_list, merged_count_dict, loop_type_order, total_merged_coun
                                 # temporal_loop = TemporalLoopLight(layer_rounded, allocated_order, spatial_loop, order.loop_cycles, order.irrelevant_loop)
                                 # loop = LoopLight(layer_rounded, temporal_loop, spatial_loop, input_settings.precision,
                                 #                 input_settings.fixed_temporal_mapping)
-                                temporal_loop = cls.TemporalLoop.extract_loop_info(layer_rounded, allocated_order, spatial_loop)
-                                input_batch_factor = help_funcs.batch_level_factor(spatial_loop, temporal_loop,
+                                input_batch_factor = help_funcs.batch_level_factor(spatial_loop, allocated_order,
                                                                                    spatial_map)
-                                loop = cls.Loop.extract_loop_info(layer_rounded, temporal_loop, spatial_loop, input_settings.precision,
-                                                input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse, input_batch_factor)
+                                temporal_loop = cls.TemporalLoop.extract_loop_info(layer_rounded, allocated_order,
+                                                                                   spatial_loop, input_batch_factor,
+                                                                                   input_settings.pixelwise_enabled &
+                                                                                   input_settings.pixelwise_input_reuse)
+
+                                loop = cls.Loop.extract_loop_info(layer_rounded, temporal_loop, spatial_loop,
+                                                                  input_settings.precision, input_settings.fixed_temporal_mapping,
+                                                                  input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse,
+                                                                  input_batch_factor)
                                 # Greedy mapping: loop_fractional required
                                 if input_settings.spatial_unrolling_mode in [4, 5]:
                                     ############# Advanced User Configuration #############
                                     # mem_energy_saving_when_BW_under_utilized = True
                                     #######################################################
-                                    temporal_loop_fractional = cls.TemporalLoop.extract_loop_info(layer_origin, allocated_order, spatial_loop_fractional)
-                                    loop_fractional = cls.Loop.extract_loop_info(layer_origin, temporal_loop_fractional, spatial_loop_fractional,
-                                                                                input_settings.precision,
-                                                                                input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse, input_batch_factor)
+                                    input_batch_factor_fractional = help_funcs.batch_level_factor(spatial_loop_fractional,
+                                                                                                  allocated_order,
+                                                                                                  spatial_map)
+                                    temporal_loop_fractional = cls.TemporalLoop.extract_loop_info(layer_origin,
+                                                                                                  allocated_order,
+                                                                                                  spatial_loop_fractional,
+                                                                                                  input_batch_factor_fractional,
+                                                                                                  input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
+                                    loop_fractional = cls.Loop.extract_loop_info(layer_origin, temporal_loop_fractional,
+                                                                                 spatial_loop_fractional,
+                                                                                 input_settings.precision,
+                                                                                 input_settings.fixed_temporal_mapping,
+                                                                                 input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse,
+                                                                                 input_batch_factor)
                                     # if mem_energy_saving_when_BW_under_utilized is False:
                                     #     loop_fractional = mem_access_count_correct(loop_fractional, loop)
 
