@@ -196,7 +196,7 @@ def mem_scheme_su_evaluate(input_settings, layer_, im2col_layer, layer_index, la
     occupied_area = msg.get_mem_scheme_area(mem_scheme, ii_su)
 
     active_mac_cost = cmf.get_active_mac_cost(layer_, input_settings.mac_array_info['single_mac_energy'])
-    layer_rounded = cls.Layer.extract_layer_info(layer_post)
+    layer_rounded = cls.Layer.extract_layer_info(layer_post, spatial_map.map_list_input[layer_index], input_settings.pixelwise_input_reuse)
     idle_mac_cost = cmf.get_idle_mac_cost(layer_, layer_rounded, input_settings.mac_array_info['array_size'],
                                           input_settings.mac_array_info['idle_mac_energy'],
                                           mem_scheme.spatial_unrolling)
