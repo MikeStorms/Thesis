@@ -160,16 +160,16 @@ class Loop(object):
                     else:
                         break
 
-        irr_loop_i = [5, 7]
-        if do_pixelwise_adjustment:
-            irr_loop_i = [5, 7]
         for level, loops in enumerate(temporal_loop.temporal_loop['I']):
             if not loops:
                 continue
             else:
                 for loop in reversed(loops):
-                    if loop[l_type] in irr_loop_i:
-                        effective_mem_size['I'][level] = req_mem_size['I'][level] / loop[l_range]
+                    if loop[l_type] in [5, 7]:
+                        if loop[l_type] == 5:
+                            effective_mem_size['I'][level] = req_mem_size['I'][level] / loop[l_range]
+                        else:
+                            effective_mem_size['I'][level] = req_mem_size['I'][level] / input_batch_factor['I'][level]
                     else:
                         break
 
