@@ -5,7 +5,7 @@ PE_array:
 precision:
   I : 8
   W : 8
-  O_partial : 16
+  O_partial : 8
   O_final : 8
 
 single_mac_energy_active : 16

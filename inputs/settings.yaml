@@ -1,7 +1,7 @@
 
 # OUTPUT FILE
 result_path : './results'
-result_filename : Test_21_new_arch_data_hint
+result_filename : Reference_original
 
 # OUTPUT FILE PRINTING MODE
 # 'concise' for printing the basic information for each optimal design point found, i.e. energy and performance.
@@ -14,7 +14,7 @@ result_print_type : xml
 # 'False' for searching the corresponding space.
 fixed_architecture : True
 fixed_spatial_unrolling : False
-fixed_temporal_mapping : False
+fixed_temporal_mapping: False
 
 # RESULT SAVING SETTINGS
 # 'False' for only saving the best result.
@@ -38,7 +38,7 @@ temporal_mapping_multiprocessing: 1
 
 # TEMPORAL MAPPING GENERATOR SETTINGS
 # search_method : exhaustive / heuristic_v1 / heuristic_v2 / iterative / loma
-temporal_mapping_search_method : loma
+temporal_mapping_search_method : exhaustive
 
 # SPATIAL MAPPING GENERATOR SETTINGS
 # search method : exhaustive / heuristic_v1 / heuristic_v2 / hint_driven / greedy_mapping_with_hint / greedy_mapping_without_hint
@@ -46,7 +46,7 @@ temporal_mapping_search_method : loma
 # Greedy mapping allows MAC array to be always fully utilized except for the last time,
   # e.g. to map (C,10) on a row of 8 PEs, without greedy mapping enabled, the tool will map (C,5), (C,5);
   # with greedy mapping enabled, it will map (C,8), (C,2).
-spatial_unrolling_search_method : greedy_mapping_with_hint
+spatial_unrolling_search_method : hint_driven
 spatial_utilization_threshold : 0.9
 
 # CONV im2col ENABLE
@@ -71,6 +71,6 @@ save_results_on_the_fly: True
 max_nb_lpf_layer: 7
 
 #Set pixelwise_enabled to true to create a pixelwise execution, prohibiting unrolling over OX and OY
-pixelwise_enabled: True
+pixelwise_enabled: False
 map_path : './maps/ResNet101'
-pixelwise_input_reuse : True
+pixelwise_input_reuse : False

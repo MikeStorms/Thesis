@@ -276,15 +276,15 @@ if __name__ == "__main__" :
     #for regular load: load_state
     #for the map extension: load_state_1 & load_state_2
     #for the buffer allocation: load_buffer_deterministic & load_buffer_stochastic & load_buffer_stochastic_edges
-    Button1 = Button(app, text="Save", command=pressed)
-    Button2 = Button(app, text="Load", command=load_buffer_deterministic)
-    Button3 = Button(app, text="Map1", command=load_buffer_stochastic)
-    Button4 = Button(app, text="Map2", command=load_buffer_stochastic_edges)
-    Percentage = Label(text="", fg="Red", font=("Helvetica", "18"))
+    Button1 = Button(app, text="Save", font=("Helvetica", "56"), command=pressed)
+    Button2 = Button(app, text="Load", font=("Helvetica", "56"), command=load_state)
+    # Button3 = Button(app, text="Map1", command=load_buffer_stochastic)
+    # Button4 = Button(app, text="Map2", command=load_buffer_stochastic_edges)
+    Percentage = Label(text="", fg="Red", font=("Helvetica", "56"))
     Button1.pack()
     Button2.pack()
-    Button3.pack()
-    Button4.pack()
+    # Button3.pack()
+    # Button4.pack()
     Percentage.pack()
     grid.pack()
     app.mainloop()

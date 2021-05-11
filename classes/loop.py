@@ -169,7 +169,10 @@ class Loop(object):
                         if loop[l_type] == 5:
                             effective_mem_size['I'][level] = req_mem_size['I'][level] / loop[l_range]
                         else:
-                            effective_mem_size['I'][level] = req_mem_size['I'][level] / input_batch_factor['I'][level]
+                            if do_pixelwise_adjustment:
+                                effective_mem_size['I'][level] = req_mem_size['I'][level] / input_batch_factor['I'][level]
+                            else:
+                                effective_mem_size['I'][level] = req_mem_size['I'][level] / loop[l_range]
                     else:
                         break
 

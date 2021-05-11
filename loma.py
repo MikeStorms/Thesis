@@ -655,7 +655,7 @@ def tl_worker_new(tl_list, merged_count_dict, loop_type_order, total_merged_coun
                                                                                  input_settings.precision,
                                                                                  input_settings.fixed_temporal_mapping,
                                                                                  input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse,
-                                                                                 input_batch_factor)
+                                                                                 input_batch_factor_fractional)
                                     # if mem_energy_saving_when_BW_under_utilized is False:
                                     #     loop_fractional = mem_access_count_correct(loop_fractional, loop)
 

@@ -24,7 +24,7 @@ import help_funcs
 
 
 def tl_worker(tl_list, input_settings, mem_scheme, layer, spatial_loop, spatial_loop_fractional, spatial_loop_comb,
-              ii_su, active_mac_cost, idle_mac_cost, occupied_area, im2col_need_correct):
+              ii_su, active_mac_cost, idle_mac_cost, occupied_area, im2col_need_correct, spatial_map):
 
     [layer_origin, layer_rounded] = layer
     pickle_enable = input_settings.tm_search_result_saving
@@ -52,10 +52,10 @@ def tl_worker(tl_list, input_settings, mem_scheme, layer, spatial_loop, spatial_
         footer_info = None
 
     for idx, tl in enumerate(tl_list):
-
-        temporal_loop = cls.TemporalLoop.extract_loop_info(layer_rounded, tl, spatial_loop)
+        input_batch_factor = help_funcs.batch_level_factor(spatial_loop, tl, spatial_map)
+        temporal_loop = cls.TemporalLoop.extract_loop_info(layer_rounded, tl, spatial_loop, input_batch_factor, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
         loop = cls.Loop.extract_loop_info(layer_rounded, temporal_loop, spatial_loop, input_settings.precision,
-                                          input_settings.fixed_temporal_mapping)
+                                          input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse, input_batch_factor)
 
         # TODO
         # if im2col_need_correct is True:
@@ -65,10 +65,11 @@ def tl_worker(tl_list, input_settings, mem_scheme, layer, spatial_loop, spatial_
             ############# Advanced User Configuration #############
             mem_energy_saving_when_BW_under_utilized = False
             #######################################################
-            temporal_loop_fractional = cls.TemporalLoop.extract_loop_info(layer_origin, tl, spatial_loop_fractional)
+            input_batch_factor_fractional = help_funcs.batch_level_factor(spatial_loop_fractional, tl, spatial_map)
+            temporal_loop_fractional = cls.TemporalLoop.extract_loop_info(layer_origin, tl, spatial_loop_fractional, input_batch_factor_fractional, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
             loop_fractional = cls.Loop.extract_loop_info(layer_origin, temporal_loop_fractional, spatial_loop_fractional,
                                                          input_settings.precision,
-                                                         input_settings.fixed_temporal_mapping)
+                                                         input_settings.fixed_temporal_mapping, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse, input_batch_factor_fractional)
             if mem_energy_saving_when_BW_under_utilized is False:
                 loop_fractional = mem_access_count_correct(loop_fractional, loop)
 
@@ -324,7 +325,7 @@ def mem_scheme_su_evaluate(input_settings, layer_, im2col_layer, layer_index, la
                     tl_count = len(tl_list)
                     results = [tl_worker(tl_list, input_settings, mem_scheme, layer, spatial_loop,
                                         spatial_loop_fractional, spatial_loop_comb, ii_su, active_mac_cost,
-                                        idle_mac_cost[ii_su], occupied_area, im2col_need_correct)]
+                                        idle_mac_cost[ii_su], occupied_area, im2col_need_correct, spatial_map)]
 
                 best_output_energy = None
                 best_output_utilization = None

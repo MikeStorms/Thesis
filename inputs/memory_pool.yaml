@@ -1,20 +1,20 @@
 on_chip_w :
    size_bit: 1600000000
-   mem_bw: [128]
-   area: [652.248]
+   mem_bw: [256]
+   area: [612.422]
    cost:
-     read_word: [0.809691]
-     write_word: [1.3199]
+     read_word: [1.32629]
+     write_word: [1.34009]
    mem_type: dual_port_double_buffered
 
 
 buffer_i :
    size_bit: 9600000000
    mem_bw: [128]
-   area: [3608.16]
+   area: [3517.12]
    cost:
-     read_word: [6.00337]
-     write_word: [6.26058]
+     read_word: [1.85081]
+     write_word: [1.83437]
    mem_type: dual_port_double_buffered
 
 buffer_o :
@@ -28,7 +28,7 @@ buffer_o :
 
 middle_i :
    size_bit: 2000
-   mem_bw: [64]
+   mem_bw: [128]
    area: [0.00193054]
    cost:
      read_word: [0.00036407]
