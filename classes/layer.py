@@ -51,7 +51,7 @@ class Layer(object):
         # Use provided (total) K and C in case of G != 1
         if do_reuse:
             self.total_data_size = {'W': K * C * FY * FX,
-                                    'I': int(C * input_map.size[0] * input_map.size[1] * input_map.percentage),
+                                    'I': int(C * input_map[str([FX, FY])].size[0] * input_map[str([FX, FY])].size[1] * input_map[str([FX, FY])].percentage),
                                     'O': B * K * OY * OX}
         else:
             self.total_data_size = {'W': K * C * FY * FX,

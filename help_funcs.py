@@ -155,7 +155,7 @@ def extract_map_info(layer_info, layer_indices, path):
     return spatial_map
 
 
-def spatial_map_extension(spatial_map_list,layer_info):
+def spatial_map_extension(output_map, layer_info):
     '''
     ONLY IS USED FOR THE SIMULATION OF THE VISUALISATION,
     Inputs are SpatialMaps, not arrays
@@ -163,26 +163,49 @@ def spatial_map_extension(spatial_map_list,layer_info):
     Makes a new variable, which is the spatial map, but with all of the input data that is necessary to operate.
     This is done by extending the current map's boundary with a certain thickness, which is derived from the kernel size
     '''
-    spatial_map_list_extended = deepcopy(spatial_map_list)
-    spatial_map_list_extended = extend_spatial_map(spatial_map_list_extended, layer_info)
-    spatial_map_reference = deepcopy(spatial_map_list_extended)
-    for layer in spatial_map_reference.keys():
-        map = spatial_map_reference[layer].map
+    output_map_extended = deepcopy(output_map)
+    input_map = extend_spatial_map(output_map_extended, layer_info)
+    output_extended_reference = deepcopy(input_map)
+    for layer in output_extended_reference.keys():
+        map = output_extended_reference[layer].map
         if map == []:
             continue
         extend_factor = int((layer_info[layer]['FX'] - 1) / 2)
-        for iy in range(spatial_map_reference[layer].size[1]):
-            for ix in range(spatial_map_reference[layer].size[0]):
-                if spatial_map_list_extended[layer].map[iy][ix] == 0:
-                    if has_neighbour(map, extend_factor, ix, iy, spatial_map_reference[layer].size):
-                        spatial_map_list_extended[layer].map[iy][ix] = 1
+        for iy in range(output_extended_reference[layer].size[1]):
+            for ix in range(output_extended_reference[layer].size[0]):
+                if input_map[layer].map[iy][ix] == 0:
+                    if has_neighbour(map, extend_factor, extend_factor, ix, iy, output_extended_reference[layer].size):
+                        input_map[layer].map[iy][ix] = 1
         # f = open('map_1', 'wb')
-        # pickle.dump(spatial_map_list_extended[layer].map, f, 2)
+        # pickle.dump(input_map[layer].map, f, 2)
         # f.close
         # f = open('map_2', 'wb')
-        # pickle.dump(spatial_map_reference[layer].map, f, 2)
+        # pickle.dump(output_extended_reference[layer].map, f, 2)
         # f.close
-    return spatial_map_list_extended
+    input_kernel_maps = {}
+    for layer in output_extended_reference.keys():
+        max_FX = layer_info[layer]['FX']
+        max_FY = layer_info[layer]['FY']
+        FX_pf = bsgutils.prime_factors(max_FX)
+        FY_pf = bsgutils.prime_factors(max_FY)
+        FX_pf.insert(0, 1)
+        FY_pf.insert(0, 1)
+        kernel_comb = get_combinations(FX_pf, FY_pf)
+        input_kernel_maps[layer] = {}
+        map = output_extended_reference[layer].map
+        if map == []:
+            input_kernel_maps[layer][str([1, 1])] = []
+        for comb in kernel_comb:
+            input_kernel_maps[layer][str(comb)] = deepcopy(output_extended_reference[layer])
+            extend_factor_x = int((comb[0] - 1) / 2)
+            extend_factor_y = int((comb[1] - 1) / 2)
+            for iy in range(output_extended_reference[layer].size[1]):
+                for ix in range(output_extended_reference[layer].size[0]):
+                    if input_kernel_maps[layer][str(comb)].map[iy][ix] == 0:
+                        if has_neighbour(map, extend_factor_x, extend_factor_y, ix, iy, output_extended_reference[layer].size):
+                            input_kernel_maps[layer][str(comb)].map[iy][ix] = 1
+            input_kernel_maps[layer][str(comb)].update_percentage()
+    return input_kernel_maps
 
 
 def map_extension(input_map, extend_kernel_x, extend_kernel_y, max_kernel_x, max_kernel_y):
@@ -324,26 +347,26 @@ def linewise_edged_extended(linewise_edges, layer_info, layer_indices):
     return edges_extended
 
 
-def has_neighbour(map, extend_factor, ix, iy, size):
+def has_neighbour(map, extend_factor_x, extend_factor_y, ix, iy, size):
     '''
     checks whether withing the neighbourghood of size extend_factor of (ix,iy) there is a 1
     '''
-    lowerbound_x = -extend_factor
-    upperbound_x = extend_factor+1
-    lowerbound_y = -extend_factor
-    upperbound_y = extend_factor+1
-    if ix < extend_factor:
-        for i in range(extend_factor):
+    lowerbound_x = -extend_factor_x
+    upperbound_x = extend_factor_x + 1
+    lowerbound_y = -extend_factor_y
+    upperbound_y = extend_factor_y + 1
+    if ix < extend_factor_x:
+        for i in range(extend_factor_x):
             lowerbound_x += 1
-    elif ix > size[0] - extend_factor - 1:
-        for i in range(extend_factor):
+    elif ix > size[0] - extend_factor_x - 1:
+        for i in range(extend_factor_x):
             upperbound_x -= 1
 
-    if iy < extend_factor:
-        for i in range(extend_factor):
+    if iy < extend_factor_y:
+        for i in range(extend_factor_y):
             lowerbound_y += 1
-    elif iy > size[1] - extend_factor - 1:
-        for i in range(extend_factor):
+    elif iy > size[1] - extend_factor_y - 1:
+        for i in range(extend_factor_y):
             upperbound_y -= 1
 
     for ex in range(lowerbound_x, upperbound_x):
@@ -614,7 +637,7 @@ def get_average_factors(map_list, map_list_input, linewise_edges, layer_info):
             extension_y = max_FY - (comb[1] - 1)
             output_data_map = map_extension(map_list[layer].map, 1, 1, max_FX, max_FY)
             edge_map = linewise_edges_map(output_data_map, comb[0], comb[1])
-            factor = average_factor_edges(map_list_input[layer].map, output_data_map, edge_map)
+            factor = average_factor_edges(map_list_input[layer][str(comb)].map, output_data_map, edge_map)
             serial_load_map[layer][str(comb)] = get_serial_load_map(output_data_map, edge_map, factor)
             average_factors[layer][str(comb)] = factor
             edge_maps[layer][str(comb)] = edge_map
@@ -678,6 +701,7 @@ def batch_level_factor(spatial_loop, order, spatial_map):
     input_factor['I'] = (n_levels_I)*[1]
     prev_batch_size = 1
     prev_kernel = [1, 1]
+    running_B = 1
     for level in range(n_levels_I):
         temp_FX = 1
         temp_FY = 1
@@ -689,6 +713,7 @@ def batch_level_factor(spatial_loop, order, spatial_map):
                 temp_FY *= unroll
             elif dimension == 7:
                 temp_B *= unroll
+        running_B *= temp_B
         kernel = [prev_kernel[0] * spatial_loop.FXu['I'][level + 1] * temp_FX, prev_kernel[1] * spatial_loop.FYu['I'][level + 1] * temp_FY]
         kernel_size = int((np.prod(kernel)))
         batch_size = int(prev_batch_size * spatial_loop.Bu['I'][level + 1] * temp_B)
@@ -701,6 +726,8 @@ def batch_level_factor(spatial_loop, order, spatial_map):
             input_factor['I'][level] = 1.0
         else:
             input_factor['I'][level] = max_factor
+        if input_factor['I'][level] > running_B:
+            print('top')
         prev_batch_size = batch_size
         prev_kernel = kernel
     return input_factor
