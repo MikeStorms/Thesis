@@ -314,7 +314,7 @@ def mem_scheme_su_evaluate(input_settings, layer_, im2col_layer, layer_index, la
 
                     # Create list of repeated arguments passed to parallel tl_worker functions
                     fixed_args = [input_settings, mem_scheme, layer, spatial_loop, spatial_loop_fractional, spatial_loop_comb,
-                                  ii_su, active_mac_cost, idle_mac_cost[ii_su], occupied_area, im2col_need_correct]
+                                  ii_su, active_mac_cost, idle_mac_cost[ii_su], occupied_area, im2col_need_correct, spatial_map]
 
                     # Call the worker function for each chunk
                     pool = Pool(processes=n_processes)
