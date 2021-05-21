@@ -1,7 +1,7 @@
 
 # OUTPUT FILE
-result_path : '/esat/amager/r0653464/results'
-result_filename : Final_data_reuse
+result_path : './cs1'
+result_filename : benchmark_8x8
 
 # OUTPUT FILE PRINTING MODE
 # 'concise' for printing the basic information for each optimal design point found, i.e. energy and performance.
@@ -26,7 +26,7 @@ save_all_temporal_mapping_result : False
 # WORKLOAD
 # layer_indices can be a single-element list or a multiple-element list or ALL.
 layer_filename : './NN_layers/ResNet101'
-layer_indices : [3]
+layer_indices : [2, 3, 4, 102, 103, 104]
 # layer_indices : ALL
 
 # MULTIPROCESSING
@@ -71,6 +71,6 @@ save_results_on_the_fly: True
 max_nb_lpf_layer: 7
 
 #Set pixelwise_enabled to true to create a pixelwise execution, prohibiting unrolling over OX and OY
-pixelwise_enabled: True
+pixelwise_enabled: False
 map_path : './maps/ResNet101'
-pixelwise_input_reuse : True
+pixelwise_input_reuse : False
