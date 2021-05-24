@@ -726,8 +726,7 @@ def batch_level_factor(spatial_loop, order, spatial_map):
             input_factor['I'][level] = 1.0
         else:
             input_factor['I'][level] = max_factor
-        if input_factor['I'][level] > running_B:
-            print('top')
+        assert (input_factor['I'][level] <= running_B), "[ERROR] Batch factor  %d larger than batch size %d" %(input_factor['I'][level], running_B)
         prev_batch_size = batch_size
         prev_kernel = kernel
     return input_factor

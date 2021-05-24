@@ -392,7 +392,6 @@ class Loop(object):
         Memory access data format for weight and input:
         [(Read, Write @ mem 0),(Read, Write @ mem 1), ...]
         '''
-
         mem_read = {'W': [],
                     'I': [],
                     'I_base': []}

@@ -1,6 +1,6 @@
 PE_array:                                       
-  Col : 8
-  Row : 8
+  Col : 16
+  Row : 16
 
 precision:
   I : 8

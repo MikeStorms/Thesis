@@ -21,21 +21,21 @@
 
                                                                                    
 ************************* Temporal Mapping Visualization ************************* 
- W: [[('OX', 8)], [('K', 8), ('OX', 7), ('OY', 56), ('C', 8)]]                     
- I: [[], [('OX', 8), ('K', 8)], [('OX', 7), ('OY', 56), ('C', 8)]]                 
- O: [[('OX', 8), ('K', 8), ('OX', 7), ('OY', 56), ('C', 8)], []]                   
+ W: [[('B', 1014)], [('FX', 3), ('FY', 3), ('C', 8), ('K', 8)]]                    
+ I: [[], [], [('B', 1014), ('FX', 3), ('FY', 3), ('C', 8), ('K', 8)]]              
+ O: [[('B', 1014), ('FX', 3), ('FY', 3), ('C', 8), ('K', 8)], []]                  
                                                                                    
 -----------------------------------------------------------------------------------
  Temporal Loops                W                  I                  O             
 -----------------------------------------------------------------------------------
- for C in [0:8)                on_chip_w          buffer_i           buffer_o      
+ for K in [0:8)                on_chip_w          buffer_i           buffer_o      
 -----------------------------------------------------------------------------------
-  for OY in [0:56)             on_chip_w          buffer_i           buffer_o      
+  for C in [0:8)               on_chip_w          buffer_i           buffer_o      
 -----------------------------------------------------------------------------------
-   for OX in [0:7)             on_chip_w          buffer_i           buffer_o      
+   for FY in [0:3)             on_chip_w          buffer_i           buffer_o      
 -----------------------------------------------------------------------------------
-    for K in [0:8)             on_chip_w          middle_i           buffer_o      
+    for FX in [0:3)            on_chip_w          buffer_i           buffer_o      
 -----------------------------------------------------------------------------------
-     for OX in [0:8)           local_w            middle_i           buffer_o      
+     for B in [0:1014)         local_w            buffer_i           buffer_o      
 -----------------------------------------------------------------------------------
  (Notes: Temporal Mapping starts from the innermost memory level. MAC level is out of Temporal Mapping's scope.)
