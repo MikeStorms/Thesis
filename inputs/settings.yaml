@@ -1,7 +1,7 @@
 
 # OUTPUT FILE
 result_path : './results'
-result_filename : compare_reuse
+result_filename : Reuse_right
 
 # OUTPUT FILE PRINTING MODE
 # 'concise' for printing the basic information for each optimal design point found, i.e. energy and performance.

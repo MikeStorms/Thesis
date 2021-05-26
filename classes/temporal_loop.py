@@ -147,7 +147,8 @@ class TemporalLoop(object):
         interleaved_storage_IX = [False] * loop_levels['I']
 
         for level in range(loop_levels['I']):
-            ifmap_size['B'][level] = input_batch_factor['I'][level] * (np.prod(spatial_loop.Bu['I'][0:level + 2])).item()
+            #ifmap_size['B'][level] = input_batch_factor['I'][level] * (np.prod(spatial_loop.Bu['I'][0:level + 2])).item()
+            ifmap_size['B'][level] = (np.prod(B['I'][0:level + 1] + spatial_loop.Bu['I'][0:level + 2])).item()
             ifmap_size['C'][level] = (np.prod(C['I'][0:level + 1] + spatial_loop.Cu['I'][0:level + 2])).item()
 
             if np.prod(OY['I'][0:level + 1] + spatial_loop.OYu['I'][0:level + 2]) == 1 or \
