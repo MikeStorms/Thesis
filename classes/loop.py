@@ -120,7 +120,6 @@ class Loop(object):
                 req_mem_size['I'][level] = int((np.prod(
                     temporal_loop.B['I'][0:level + 1] + temporal_loop.C['I'][0:level + 1] + [IY] + [IX] +
                     spatial_loop.Bu['I'][0:level + 1] + spatial_loop.Cu['I'][0:level + 1])).item())
-
             req_mem_count['I'][level] = spatial_loop.unit_count['I'][level + 1]
 
         for level in range(mem_level['O']):

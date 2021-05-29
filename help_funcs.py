@@ -722,7 +722,7 @@ def batch_level_factor(spatial_loop, order, spatial_map):
                              range((len(serial_load_map) + batch_size - 1) // batch_size)]
         split_up_factors = [sum(x) / kernel_size for x in split_up_load_map]
         max_factor = max(split_up_factors)
-        if (max_factor < 1) or (batch_size == 1):
+        if (batch_size == 1):
             input_factor['I'][level] = 1.0
         else:
             input_factor['I'][level] = max_factor
