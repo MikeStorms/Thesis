@@ -587,7 +587,7 @@ def loop_order_combinations_exhaustive(blocking_scheme):
 
 
 def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, layer_index, spatial_unrolling, drc_enabled,
-        stationary_enable, tmg_scheme_hint=[]):
+        stationary_enable, spatial_map, pixelwise_reuse, tmg_scheme_hint=[]):
     operand_irrelevant = {
         'W': [3, 4, 7],
         'O': [1, 2, 5],
@@ -667,7 +667,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, layer
     for operand in ['W', 'I', 'O']:
         roof[operand][1] = mem_block_size[operand][0]
     roof = su.update_roof(bs, spatial_unrolling, [], roof, mem_share, mem_size, precision, operand_irrelevant, loops_pf,
-                          layer_loop_info)
+                          layer_loop_info, spatial_map, pixelwise_reuse)
     r_op, r_lev = roof.keys(), roof.values()
     r_lev, r_size = zip(*r_lev)
 
@@ -823,7 +823,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, layer
                                 is_min_roof = True
                             is_fit = su.check_comb_fit(LPF_scheme, spatial_unrolling, comb[j], r, mem_size, mem_share,
                                                        utilization_rate, precision, operand_irrelevant, is_min_roof,
-                                                       layer_loop_info)
+                                                       layer_loop_info, spatial_map, pixelwise_reuse)
                             if not is_fit:
                                 break
                         if not is_fit:
@@ -866,7 +866,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, layer
                         new_tmp_roof[shared_min_roof_levels[p][0]][0] = shared_min_roof_levels[p][1] + level_up
                     new_roof = su.update_roof(LPF_scheme, spatial_unrolling, [], new_tmp_roof, mem_share, mem_size,
                                               precision,
-                                              operand_irrelevant, new_loops_pf, layer_loop_info)
+                                              operand_irrelevant, new_loops_pf, layer_loop_info, spatial_map, pixelwise_reuse)
                     isgood = su.check_node(LPF_scheme, mem_size, operand_irrelevant, mem_share, precision,
                                            layer_loop_info, utilization_rate)
                     # No need to update LPF scheme
@@ -901,7 +901,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, layer
                         tmp_roof = su.update_roof(LPF_scheme, spatial_unrolling, min_list_fitting_combinations[k], roof,
                                                   mem_share,
                                                   mem_size, precision, operand_irrelevant, new_loops_pf,
-                                                  layer_loop_info)
+                                                  layer_loop_info, spatial_map, pixelwise_reuse)
 
                         new_tmp_roof = copy.deepcopy(tmp_roof)
                         new_LPF_scheme = copy.deepcopy(LPF_scheme)
@@ -921,9 +921,9 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, layer
                         new_roof = su.update_roof(new_LPF_scheme, spatial_unrolling, [], new_tmp_roof, mem_share,
                                                   mem_size,
                                                   precision,
-                                                  operand_irrelevant, new_loops_pf, layer_loop_info)
+                                                  operand_irrelevant, new_loops_pf, layer_loop_info, spatial_map, pixelwise_reuse)
                         isgood = su.check_node(new_LPF_scheme, mem_size, operand_irrelevant, mem_share, precision,
-                                               layer_loop_info, utilization_rate)
+                                               layer_loop_info, utilization_rate, spatial_unrolling, spatial_map, pixelwise_reuse)
 
                         if isgood:
                             # Generate new node in the blocking scheme tree, add it to the list
@@ -953,7 +953,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, layer
                             new_roof = su.update_roof(LPF_scheme, spatial_unrolling, [], new_tmp_roof, mem_share,
                                                       mem_size,
                                                       precision,
-                                                      operand_irrelevant, new_loops_pf, layer_loop_info)
+                                                      operand_irrelevant, new_loops_pf, layer_loop_info, spatial_map, pixelwise_reuse)
                             isgood = su.check_node(LPF_scheme, mem_size, operand_irrelevant, mem_share, precision,
                                                    layer_loop_info, utilization_rate)
 
@@ -1002,7 +1002,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, layer
 
 
 def bsg_fixed_order(loop_order, mem_size, mem_share, precision, utilization_rate, layer_loop_info, layer_index,
-                    spatial_unrolling):
+                    spatial_unrolling, spatial_map, pixelwise_reuse):
     operand_irrelevant = {
         'W': [3, 4, 7],
         'O': [1, 2, 5],
@@ -1080,7 +1080,7 @@ def bsg_fixed_order(loop_order, mem_size, mem_share, precision, utilization_rate
     for operand in ['W', 'I', 'O']:
         roof[operand][1] = mem_block_size[operand][0]
     roof = su.update_roof(bs, spatial_unrolling, [], roof, mem_share, mem_size, precision, operand_irrelevant, loops_pf,
-                          layer_loop_info)
+                          layer_loop_info, spatial_map, pixelwise_reuse)
     r_op, r_lev = roof.keys(), roof.values()
     r_lev, r_size = zip(*r_lev)
 
@@ -1300,7 +1300,7 @@ def bsg_fixed_order(loop_order, mem_size, mem_share, precision, utilization_rate
                         new_tmp_roof[shared_min_roof_levels[p][0]][0] = shared_min_roof_levels[p][1] + level_up
                     new_roof = su.update_roof(LPF_scheme, spatial_unrolling, [], new_tmp_roof, mem_share, mem_size,
                                               precision,
-                                              operand_irrelevant, new_loops_pf, layer_loop_info)
+                                              operand_irrelevant, new_loops_pf, layer_loop_info, spatial_map, pixelwise_reuse)
                     isgood = su.check_node(LPF_scheme, mem_size, operand_irrelevant, mem_share, precision,
                                            layer_loop_info, utilization_rate)
                     # No need to update LPF scheme
@@ -1334,7 +1334,7 @@ def bsg_fixed_order(loop_order, mem_size, mem_share, precision, utilization_rate
                         tmp_roof = su.update_roof(LPF_scheme, spatial_unrolling, min_list_fitting_combinations[k], roof,
                                                   mem_share,
                                                   mem_size, precision, operand_irrelevant, new_loops_pf,
-                                                  layer_loop_info)
+                                                  layer_loop_info, spatial_map, pixelwise_reuse)
 
                         new_tmp_roof = copy.deepcopy(tmp_roof)
                         new_LPF_scheme = copy.deepcopy(LPF_scheme)
@@ -1354,7 +1354,7 @@ def bsg_fixed_order(loop_order, mem_size, mem_share, precision, utilization_rate
                         new_roof = su.update_roof(new_LPF_scheme, spatial_unrolling, [], new_tmp_roof, mem_share,
                                                   mem_size,
                                                   precision,
-                                                  operand_irrelevant, new_loops_pf, layer_loop_info)
+                                                  operand_irrelevant, new_loops_pf, layer_loop_info, spatial_map, pixelwise_reuse)
 
                         isgood = su.check_node(new_LPF_scheme, mem_size, operand_irrelevant, mem_share, precision,
                                                layer_loop_info, utilization_rate)
@@ -1387,7 +1387,7 @@ def bsg_fixed_order(loop_order, mem_size, mem_share, precision, utilization_rate
                             new_roof = su.update_roof(LPF_scheme, spatial_unrolling, [], new_tmp_roof, mem_share,
                                                       mem_size,
                                                       precision,
-                                                      operand_irrelevant, new_loops_pf, layer_loop_info)
+                                                      operand_irrelevant, new_loops_pf, layer_loop_info, spatial_map, pixelwise_reuse)
                             isgood = su.check_node(LPF_scheme, mem_size, operand_irrelevant, mem_share, precision,
                                                    layer_loop_info, utilization_rate)
 

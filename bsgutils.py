@@ -3,7 +3,7 @@ import numpy as np
 import math
 import time
 from itertools import combinations
-
+import help_funcs
 
 def prime_factors(n):
     i = 2
@@ -19,14 +19,17 @@ def prime_factors(n):
     return factors
 
 
-def input_relevant_size_below(LPF_scheme, mem_level, layer_loop_info):
+def input_relevant_size_below(LPF_scheme, mem_level, layer_loop_info, spatial_unrolling, spatial_map, pixelwise_reuse):
     FX_size = 1
     FY_size = 1
     OX_size = 1
     OY_size = 1
     C_size = 1
     B_size = 1
+    input_batch_factor = help_funcs.batch_level_factor_bsg(spatial_unrolling, LPF_scheme, spatial_map)
     for y in range(0, mem_level + 1):
+        if pixelwise_reuse:
+            B_size *= input_batch_factor['I'][y]
         for x in range(0, len(LPF_scheme['I'][y])):
             if LPF_scheme['I'][y][x][0] == 1:
                 FX_size *= LPF_scheme['I'][y][x][1]
@@ -39,14 +42,15 @@ def input_relevant_size_below(LPF_scheme, mem_level, layer_loop_info):
             if LPF_scheme['I'][y][x][0] == 5:
                 C_size *= LPF_scheme['I'][y][x][1]
             if LPF_scheme['I'][y][x][0] == 7:
-                B_size *= LPF_scheme['I'][y][x][1]
+                if not pixelwise_reuse:
+                    B_size *= LPF_scheme['I'][y][x][1]
 
     IX_size = layer_loop_info['SX'] * (OX_size - 1) + layer_loop_info['SFX'] * (FX_size - 1) + 1
     IY_size = layer_loop_info['SY'] * (OY_size - 1) + layer_loop_info['SFY'] * (FY_size - 1) + 1
     return IX_size * IY_size * C_size * B_size
 
 
-def check_node(blocking_node, mem_size, operand_irrelevant, mem_share, precision, layer_loop_info, utilization_rate):
+def check_node(blocking_node, mem_size, operand_irrelevant, mem_share, precision, layer_loop_info, utilization_rate, spatial_unrolling, spatial_map, pixelwise_reuse):
     good = True
     # Given a blocking_node (with loops_pf, roof and LPF_scheme) checks whether the LPFs assigned
     # in its LPF_scheme don't exceed the storage parameters per memory level
@@ -61,7 +65,7 @@ def check_node(blocking_node, mem_size, operand_irrelevant, mem_share, precision
             tot_size = 0
             for i in range(0, len(shared_min_roof_levels)):
                 if shared_min_roof_levels[i][0] == 'I':
-                    rel_loop_size = input_relevant_size_below(blocking_node, shared_min_roof_levels[i][1], layer_loop_info) * precision[
+                    rel_loop_size = input_relevant_size_below(blocking_node, shared_min_roof_levels[i][1], layer_loop_info, spatial_unrolling, spatial_map, pixelwise_reuse) * precision[
                         shared_min_roof_levels[i][0]]
 
                 else:
@@ -101,7 +105,7 @@ def cleaner(LPF_schemes_list):
 
 
 def check_comb_fit(LPF_scheme, spatial_unrolling, comb, min_roof, mem_size, mem_share, utilization_rate, precision,
-                   operand_irrelevant, is_min_roof, layer_loop_info):
+                   operand_irrelevant, is_min_roof, layer_loop_info, spatial_map, pixelwise_reuse):
     # Given a LPF_scheme and a combination of LPFs check whether they fit in the roof provided
     total_size = 0
     is_fit = True
@@ -124,7 +128,7 @@ def check_comb_fit(LPF_scheme, spatial_unrolling, comb, min_roof, mem_size, mem_
         # While for the other operands is enough to compute the product of the sizes of the relevant LPFs, for 'I'
         # it is necessary to take into account FX, OX, FY, OY, stride values
         if shared_min_roof_levels[i][0] == 'I':
-            block_size = input_relevant_size_below(tmp_LPF_scheme, shared_min_roof_levels[i][1], layer_loop_info) * \
+            block_size = input_relevant_size_below(tmp_LPF_scheme, shared_min_roof_levels[i][1], layer_loop_info, spatial_unrolling, spatial_map, pixelwise_reuse) * \
                          precision[shared_min_roof_levels[i][0]]
         else:
             block_size = precision[shared_min_roof_levels[i][0]]
@@ -161,7 +165,7 @@ def check_comb_fit(LPF_scheme, spatial_unrolling, comb, min_roof, mem_size, mem_
 
 
 def update_roof(LPF_scheme, spatial_unrolling, fitting_combination, old_roof, mem_share, mem_size, precision, operand_irrelevant,
-                loops_pf, layer_loop_info):
+                loops_pf, layer_loop_info, spatial_map, pixelwise_reuse):
     # The function updates the max blocks available for each operand at the specified level in the roof
     # taking into account the partial LPF scheme with the fitting combination stacked on top of it
     tmp_LPF_scheme = deepcopy(LPF_scheme)
@@ -187,7 +191,7 @@ def update_roof(LPF_scheme, spatial_unrolling, fitting_combination, old_roof, me
         # NOT SHARED CASE (the shared roof is the roof of a single operand)
         if len(shared_roof) == 1:
             if shared_roof[0][0] == 'I':
-                block_size = input_relevant_size_below(tmp_LPF_scheme, shared_roof[0][1], layer_loop_info) * precision[
+                block_size = input_relevant_size_below(tmp_LPF_scheme, shared_roof[0][1], layer_loop_info, spatial_unrolling, spatial_map, pixelwise_reuse) * precision[
                     shared_roof[0][0]]
             else:
                 block_size = precision[shared_roof[0][0]]
@@ -220,7 +224,7 @@ def update_roof(LPF_scheme, spatial_unrolling, fitting_combination, old_roof, me
                 for j in range(0, len(comb)):
                     if operand == 'I':
                         tmp_bs = {'I': [comb[j]]}
-                        blocks_available = input_relevant_size_below(tmp_bs, 0, layer_loop_info)
+                        blocks_available = input_relevant_size_below(tmp_bs, 0, layer_loop_info, spatial_unrolling, spatial_map, pixelwise_reuse)
                     else:
                         blocks_available = np.prod(
                             list(lpf[1] for lpf in comb[j] if lpf[0] not in operand_irrelevant[operand]))
@@ -229,7 +233,7 @@ def update_roof(LPF_scheme, spatial_unrolling, fitting_combination, old_roof, me
                     is_fit = True
                     rf = [operand, old_roof[operand][0], 0]
                     is_fit = check_comb_fit(tmp_LPF_scheme2, spatial_unrolling, comb[j], rf, mem_size, mem_share, [],
-                                            precision, operand_irrelevant, False, layer_loop_info)
+                                            precision, operand_irrelevant, False, layer_loop_info, spatial_map, pixelwise_reuse)
                     if not is_fit:
                         continue
                     max_blocks_available = blocks_available

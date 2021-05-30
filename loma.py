@@ -590,7 +590,7 @@ def tl_worker_new(tl_list, merged_count_dict, loop_type_order, total_merged_coun
 
                                 # Merge loops of same type
                                 merged_order = merge_loops(nonmerged_order, smallest_pfs)
-                                
+
                                 # Check if merged order was already processed
                                 hashed = hash(merged_order)
                                 if hashed in merged_set:

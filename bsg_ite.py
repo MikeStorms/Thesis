@@ -450,7 +450,7 @@ def loop_order_combinations(blocking_scheme):
 
 
 def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, spatial_unrolling, layer_info, mem_scheme,
-        hw_spec):
+        hw_spec, spatial_map, pixelwise_reuse):
     t1 = time.time()
     total_number_of_schemes = 0
     operand_irrelevant = {
@@ -539,7 +539,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, spati
     for operand in mem_block_size:
         roof[operand][1] = mem_block_size[operand][0]
     roof = su.update_roof(bs, spatial_unrolling, [], roof, mem_share, mem_size, precision, operand_irrelevant, loops_pf,
-                          layer_loop_info)
+                          layer_loop_info, spatial_map, pixelwise_reuse)
     r_op, r_lev = roof.keys(), roof.values()
     r_lev, r_size = zip(*r_lev)
 
@@ -677,7 +677,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, spati
                             is_fit = su.check_comb_fit(blocking_scheme, spatial_unrolling, comb[j], r, mem_size,
                                                        mem_share,
                                                        utilization_rate, precision, operand_irrelevant, is_min_roof,
-                                                       layer_loop_info)
+                                                       layer_loop_info, spatial_map, pixelwise_reuse)
                             if not is_fit:
                                 break
                         if not is_fit:
@@ -703,7 +703,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, spati
                             new_tmp_roof[shared_min_roof_levels[p][0]][0] = shared_min_roof_levels[p][1] + level_up
                         new_roof = su.update_roof(blocking_scheme, spatial_unrolling, [], new_tmp_roof, mem_share,
                                                   mem_size, precision,
-                                                  operand_irrelevant, new_loops_pf, layer_loop_info)
+                                                  operand_irrelevant, new_loops_pf, layer_loop_info, spatial_map, pixelwise_reuse)
 
                         # No need to update blocking scheme
                         new_blocking_scheme = copy.deepcopy(blocking_scheme)
@@ -829,7 +829,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, spati
                             tmp_roof = su.update_roof(blocking_scheme, spatial_unrolling,
                                                       list(best_comb[ii_good_scheme]), roof, mem_share,
                                                       mem_size, precision, operand_irrelevant, new_loops_pf,
-                                                      layer_loop_info)
+                                                      layer_loop_info, spatial_map, pixelwise_reuse)
 
                             # No need to update loops pf
 
@@ -858,7 +858,7 @@ def bsg(mem_size, mem_share, precision, utilization_rate, layer_loop_info, spati
                             new_roof = su.update_roof(good_scheme, spatial_unrolling, [], new_tmp_roof, mem_share,
                                                       mem_size,
                                                       precision,
-                                                      operand_irrelevant, new_loops_pf, layer_loop_info)
+                                                      operand_irrelevant, new_loops_pf, layer_loop_info, spatial_map, pixelwise_reuse)
 
                             # Generate new node in the blocking scheme tree, add it to the list
                             blocking_node = su.SchedulerNode(good_scheme, new_roof, new_loops_pf)

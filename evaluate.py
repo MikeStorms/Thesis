@@ -240,13 +240,13 @@ def mem_scheme_su_evaluate(input_settings, layer_, im2col_layer, layer_index, la
                                                            mem_scheme.mem_utilization_rate,
                                                            layer_post,
                                                            mem_scheme.spatial_unrolling[ii_su], layer_, mem_scheme,
-                                                           input_settings)
+                                                           input_settings, spatial_map, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
                 if input_settings.tmg_search_method == 1:
                     tl_list = bsg_exh.bsg(mem_scheme.mem_size, mem_scheme.mem_share, input_settings.precision,
                                           mem_scheme.mem_utilization_rate, layer_post,
                                           layer_index,
                                           mem_scheme.spatial_unrolling[ii_su], input_settings.drc_enabled,
-                                          input_settings.stationary_optimization_enable)
+                                          input_settings.stationary_optimization_enable, spatial_map, input_settings.pixelwise_enabled & input_settings.pixelwise_input_reuse)
                     tl_combinations = len(tl_list)
 
                     ####################### Advanced User Configuration #######################

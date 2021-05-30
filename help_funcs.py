@@ -730,3 +730,67 @@ def batch_level_factor(spatial_loop, order, spatial_map):
         prev_batch_size = batch_size
         prev_kernel = kernel
     return input_factor
+
+def batch_level_factor_bsg(spatial_unrolling, order, spatial_map):
+    '''
+    In pixelwise operation with data reuse, the B dimension is only not relevant nor irrelevant. For relevant loops, the
+    dimension is used in a product to decide the data size, while in irrelevant loops it is not used. Here, due to
+    input data reuse, a custom factor needs to be used in the multiplication which is between 1 and the batchsize.
+    This is calculated in this function. Normally the factor of previous levels need to multiplied with the current level
+    to get the final factor. But here this is not possible since there is a non linear data dependency in the factor.
+    This means that the previous unrolling of B alter the current factor, e.g. the factor of (B,7) /= the factor of
+    (B,2), (B,7)
+    :param spatial_loop:
+    :param temporal_loop:
+    :param spatial_map:
+    :return:
+    '''
+    input_factor = {}
+    n_levels_I = len(order['I'])
+    input_factor['I'] = (n_levels_I)*[1]
+    prev_batch_size = 1
+    prev_kernel = [1, 1]
+    running_B = 1
+    for level in range(n_levels_I):
+        temp_FX = 1
+        temp_FY = 1
+        temp_B = 1
+        for (dimension, unroll) in order['I'][level]:
+            if dimension == 1:
+                temp_FX *= unroll
+            elif dimension == 2:
+                temp_FY *= unroll
+            elif dimension == 7:
+                temp_B *= unroll
+        for (dimension, unroll) in spatial_unrolling['I'][level]:
+            if dimension == 1:
+                temp_FX *= unroll
+            elif dimension == 2:
+                temp_FY *= unroll
+            elif dimension == 7:
+                temp_B *= unroll
+        running_B *= temp_B
+        kernel = [prev_kernel[0] * temp_FX, prev_kernel[1] * temp_FY]
+        kernel_size = int((np.prod(kernel)))
+        batch_size = int(prev_batch_size * temp_B)
+        try:
+            serial_load_map = spatial_map.serial_load_map[str(kernel)]
+        except:
+            string_kernels = list(spatial_map.serial_load_map.keys())
+            string_list = [x.strip('][').split(',') for x in string_kernels]
+            kernel_list = [[int(str) for str in lst] for lst in string_list]
+            max_kernel = [max([kernel[0] for kernel in kernel_list]), max([kernel[1] for kernel in kernel_list])]
+            kernel = [min(kernel[0], max_kernel[0]), min(kernel[1], max_kernel[1])]
+            serial_load_map = spatial_map.serial_load_map[str(kernel)]
+        split_up_load_map = [serial_load_map[i * batch_size:(i + 1) * batch_size] for i in
+                             range((len(serial_load_map) + batch_size - 1) // batch_size)]
+        split_up_factors = [sum(x) / kernel_size for x in split_up_load_map]
+        max_factor = max(split_up_factors)
+        if (batch_size == 1):
+            input_factor['I'][level] = 1.0
+        else:
+            input_factor['I'][level] = max_factor
+        assert (input_factor['I'][level] <= running_B), "[ERROR] Batch factor  %d larger than batch size %d" %(input_factor['I'][level], running_B)
+        prev_batch_size = batch_size
+        prev_kernel = kernel
+    return input_factor
